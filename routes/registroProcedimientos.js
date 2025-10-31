@@ -127,6 +127,13 @@ router.post('/', authenticateToken, async (req, res) => {
 // Obtener métricas del usuario actual
 router.get('/metricas/usuario', authenticateToken, async (req, res) => {
   try {
+    // Cargar modelos al inicio
+    const CategorizacionKinesiologia = require('../models/CategorizacionKinesiologia');
+    const ProcedimientoAuxiliar = require('../models/ProcedimientoAuxiliar');
+    const ProcedimientoMedicina = require('../models/ProcedimientoMedicina');
+    const ProcedimientoTENS = require('../models/ProcedimientoTENS');
+    const ProcedimientoKinesiologia = require('../models/ProcedimientoKinesiologia');
+    
     const usuarioId = req.user.id;
     
     let totalProcedimientos = 0;
@@ -173,7 +180,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Procedimientos Auxiliares
     try {
-      const ProcedimientoAuxiliar = require('../models/ProcedimientoAuxiliar');
       const procAuxiliares = await ProcedimientoAuxiliar.count({
         where: { usuarioId }
       });
@@ -192,7 +198,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Procedimientos Medicina
     try {
-      const ProcedimientoMedicina = require('../models/ProcedimientoMedicina');
       const procMedicina = await ProcedimientoMedicina.count({
         where: { usuarioId }
       });
@@ -211,7 +216,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Procedimientos TENS
     try {
-      const ProcedimientoTENS = require('../models/ProcedimientoTENS');
       const procTENS = await ProcedimientoTENS.count({
         where: { usuarioId }
       });
@@ -230,7 +234,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Procedimientos Kinesiología
     try {
-      const ProcedimientoKinesiologia = require('../models/ProcedimientoKinesiologia');
       const procKinesiologia = await ProcedimientoKinesiologia.count({
         where: { usuarioId }
       });
@@ -254,7 +257,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     // 3. Total de Categorizaciones del usuario
     let totalCategorizaciones = 0;
     try {
-      const CategorizacionKinesiologia = require('../models/CategorizacionKinesiologia');
       totalCategorizaciones = await CategorizacionKinesiologia.count({
         where: { usuarioId }
       }) || 0;
@@ -286,7 +288,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_auxiliares
     try {
-      const ProcedimientoAuxiliar = require('../models/ProcedimientoAuxiliar');
       const pacientesAuxiliares = await ProcedimientoAuxiliar.findAll({
         where: {
           usuarioId,
@@ -304,7 +305,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_medicina
     try {
-      const ProcedimientoMedicina = require('../models/ProcedimientoMedicina');
       const pacientesMedicina = await ProcedimientoMedicina.findAll({
         where: {
           usuarioId,
@@ -322,7 +322,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_tens
     try {
-      const ProcedimientoTENS = require('../models/ProcedimientoTENS');
       const pacientesTENS = await ProcedimientoTENS.findAll({
         where: {
           usuarioId,
@@ -340,7 +339,6 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_kinesiologia
     try {
-      const ProcedimientoKinesiologia = require('../models/ProcedimientoKinesiologia');
       const pacientesKinesiologia = await ProcedimientoKinesiologia.findAll({
         where: {
           usuarioId,
