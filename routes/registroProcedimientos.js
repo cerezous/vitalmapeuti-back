@@ -268,13 +268,14 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     // Pacientes de procedimientos_registro (Enfermería)
     if (registrosIds.length > 0) {
       try {
-        const pacientesEnfermeria = await sequelize.query(
-          `SELECT DISTINCT "pacienteRut" FROM procedimientos_registro WHERE "registroId" IN (:registrosIds) AND "pacienteRut" IS NOT NULL`,
-          {
-            replacements: { registrosIds },
-            type: sequelize.QueryTypes.SELECT
-          }
-        );
+        const pacientesEnfermeria = await ProcedimientoRegistro.findAll({
+          where: {
+            registroId: { [Op.in]: registrosIds },
+            pacienteRut: { [Op.ne]: null }
+          },
+          attributes: ['pacienteRut'],
+          raw: true
+        });
         pacientesEnfermeria.forEach(p => {
           if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
         });
@@ -285,13 +286,15 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_auxiliares
     try {
-      const pacientesAuxiliares = await sequelize.query(
-        `SELECT DISTINCT "pacienteRut" FROM procedimientos_auxiliares WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
-        {
-          replacements: { usuarioId },
-          type: sequelize.QueryTypes.SELECT
-        }
-      );
+      const ProcedimientoAuxiliar = require('../models/ProcedimientoAuxiliar');
+      const pacientesAuxiliares = await ProcedimientoAuxiliar.findAll({
+        where: {
+          usuarioId,
+          pacienteRut: { [Op.ne]: null }
+        },
+        attributes: ['pacienteRut'],
+        raw: true
+      });
       pacientesAuxiliares.forEach(p => {
         if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
       });
@@ -301,13 +304,15 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_medicina
     try {
-      const pacientesMedicina = await sequelize.query(
-        `SELECT DISTINCT "pacienteRut" FROM procedimientos_medicina WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
-        {
-          replacements: { usuarioId },
-          type: sequelize.QueryTypes.SELECT
-        }
-      );
+      const ProcedimientoMedicina = require('../models/ProcedimientoMedicina');
+      const pacientesMedicina = await ProcedimientoMedicina.findAll({
+        where: {
+          usuarioId,
+          pacienteRut: { [Op.ne]: null }
+        },
+        attributes: ['pacienteRut'],
+        raw: true
+      });
       pacientesMedicina.forEach(p => {
         if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
       });
@@ -317,13 +322,15 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_tens
     try {
-      const pacientesTENS = await sequelize.query(
-        `SELECT DISTINCT "pacienteRut" FROM procedimientos_tens WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
-        {
-          replacements: { usuarioId },
-          type: sequelize.QueryTypes.SELECT
-        }
-      );
+      const ProcedimientoTENS = require('../models/ProcedimientoTENS');
+      const pacientesTENS = await ProcedimientoTENS.findAll({
+        where: {
+          usuarioId,
+          pacienteRut: { [Op.ne]: null }
+        },
+        attributes: ['pacienteRut'],
+        raw: true
+      });
       pacientesTENS.forEach(p => {
         if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
       });
@@ -333,13 +340,15 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Pacientes de procedimientos_kinesiologia
     try {
-      const pacientesKinesiologia = await sequelize.query(
-        `SELECT DISTINCT "pacienteRut" FROM procedimientos_kinesiologia WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
-        {
-          replacements: { usuarioId },
-          type: sequelize.QueryTypes.SELECT
-        }
-      );
+      const ProcedimientoKinesiologia = require('../models/ProcedimientoKinesiologia');
+      const pacientesKinesiologia = await ProcedimientoKinesiologia.findAll({
+        where: {
+          usuarioId,
+          pacienteRut: { [Op.ne]: null }
+        },
+        attributes: ['pacienteRut'],
+        raw: true
+      });
       pacientesKinesiologia.forEach(p => {
         if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
       });
