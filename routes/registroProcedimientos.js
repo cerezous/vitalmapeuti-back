@@ -275,7 +275,7 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
             registroId: { [Op.in]: registrosIds },
             pacienteRut: { [Op.ne]: null }
           },
-          attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
+          attributes: ['pacienteRut'],
           raw: true
         });
         pacientesEnfermeria.forEach(p => {
@@ -293,7 +293,7 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
+        attributes: ['pacienteRut'],
         raw: true
       });
       pacientesAuxiliares.forEach(p => {
@@ -310,7 +310,7 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
+        attributes: ['pacienteRut'],
         raw: true
       });
       pacientesMedicina.forEach(p => {
@@ -327,7 +327,7 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
+        attributes: ['pacienteRut'],
         raw: true
       });
       pacientesTENS.forEach(p => {
@@ -344,7 +344,7 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
+        attributes: ['pacienteRut'],
         raw: true
       });
       pacientesKinesiologia.forEach(p => {
