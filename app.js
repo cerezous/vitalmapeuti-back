@@ -1,11 +1,12 @@
 // Cargar variables de entorno ANTES que todo
 require('dotenv').config();
 
-// Ejecutar migraciones automáticamente en producción
-if (process.env.NODE_ENV === 'production') {
-  console.log('🚀 Ejecutando migraciones automáticas...');
-  require('./auto-migrate');
-}
+// Ejecutar migraciones automáticamente en producción (DESHABILITADO para mejor rendimiento)
+// Descomentar solo si necesitas ejecutar migraciones manualmente
+// if (process.env.NODE_ENV === 'production') {
+//   console.log('🚀 Ejecutando migraciones automáticas...');
+//   require('./auto-migrate');
+// }
 
 const express = require('express');
 const cors = require('cors');
