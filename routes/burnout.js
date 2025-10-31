@@ -145,9 +145,9 @@ router.get('/estadisticas', auth, async (req, res) => {
         [CuestionarioBurnout.sequelize.fn('AVG', CuestionarioBurnout.sequelize.col('agotamientoEmocional')), 'promedioAgotamiento'],
         [CuestionarioBurnout.sequelize.fn('AVG', CuestionarioBurnout.sequelize.col('despersonalizacion')), 'promedioDespersonalizacion'],
         [CuestionarioBurnout.sequelize.fn('AVG', CuestionarioBurnout.sequelize.col('realizacionPersonal')), 'promedioRealizacion'],
-        [CuestionarioBurnout.sequelize.fn('SUM', CuestionarioBurnout.sequelize.literal("CASE WHEN nivelAgotamiento = 'alto' THEN 1 ELSE 0 END")), 'nivelAgotamientoAlto'],
-        [CuestionarioBurnout.sequelize.fn('SUM', CuestionarioBurnout.sequelize.literal("CASE WHEN nivelDespersonalizacion = 'alto' THEN 1 ELSE 0 END")), 'nivelDespersonalizacionAlto'],
-        [CuestionarioBurnout.sequelize.fn('SUM', CuestionarioBurnout.sequelize.literal("CASE WHEN nivelRealizacion = 'bajo' THEN 1 ELSE 0 END")), 'nivelRealizacionBajo']
+        [CuestionarioBurnout.sequelize.fn('SUM', CuestionarioBurnout.sequelize.literal("CASE WHEN \"nivelAgotamiento\"::text = 'alto' THEN 1 ELSE 0 END")), 'nivelAgotamientoAlto'],
+        [CuestionarioBurnout.sequelize.fn('SUM', CuestionarioBurnout.sequelize.literal("CASE WHEN \"nivelDespersonalizacion\"::text = 'alto' THEN 1 ELSE 0 END")), 'nivelDespersonalizacionAlto'],
+        [CuestionarioBurnout.sequelize.fn('SUM', CuestionarioBurnout.sequelize.literal("CASE WHEN \"nivelRealizacion\"::text = 'bajo' THEN 1 ELSE 0 END")), 'nivelRealizacionBajo']
       ],
       group: ['estamento'],
       raw: true
@@ -177,9 +177,12 @@ router.get('/estadisticas', auth, async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     res.status(500).json({
       message: 'Error interno del servidor',
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
