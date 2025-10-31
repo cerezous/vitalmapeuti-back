@@ -127,13 +127,24 @@ router.post('/', authenticateToken, async (req, res) => {
 // Obtener métricas del usuario actual
 router.get('/metricas/usuario', authenticateToken, async (req, res) => {
   try {
-    const CategorizacionKinesiologia = require('../models/CategorizacionKinesiologia');
-    const ProcedimientoAuxiliar = require('../models/ProcedimientoAuxiliar');
-    const ProcedimientoMedicina = require('../models/ProcedimientoMedicina');
-    const ProcedimientoTENS = require('../models/ProcedimientoTENS');
-    const ProcedimientoKinesiologia = require('../models/ProcedimientoKinesiologia');
     const usuarioId = req.user.id;
     
+    let totalProcedimientos = 0;
+    let tiempoTotalMinutos = 0;
+    
+    // Función helper para convertir tiempo HH:MM a minutos
+    const tiempoAMinutos = (tiempo) => {
+      if (!tiempo || typeof tiempo !== 'string') return 0;
+      try {
+        const partes = tiempo.split(':');
+        if (partes.length !== 2) return 0;
+        const horas = parseInt(partes[0]) || 0;
+        const minutos = parseInt(partes[1]) || 0;
+        return horas * 60 + minutos;
+      } catch (e) {
+        return 0;
+      }
+    };
     
     // 1. Total de Procedimientos del usuario (sumar de todas las tablas)
     // RegistroProcedimientos (Enfermería)
@@ -143,154 +154,198 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     });
     const registrosIds = registrosUsuario.map(r => r.id);
     
-    let totalProcedimientos = 0;
-    let tiempoTotalMinutos = 0;
-    
     // Procedimientos de Enfermería
     if (registrosIds.length > 0) {
-      const procEnfermeria = await ProcedimientoRegistro.count({
-        where: { registroId: { [Op.in]: registrosIds } }
-      });
-      totalProcedimientos += procEnfermeria;
-      
-      const tiempoEnfermeria = await RegistroProcedimientos.sum('tiempoTotal', {
-        where: { usuarioId }
-      });
-      tiempoTotalMinutos += tiempoEnfermeria || 0;
+      try {
+        const procEnfermeria = await ProcedimientoRegistro.count({
+          where: { registroId: { [Op.in]: registrosIds } }
+        });
+        totalProcedimientos += procEnfermeria;
+        
+        const tiempoEnfermeria = await RegistroProcedimientos.sum('tiempoTotal', {
+          where: { usuarioId }
+        });
+        tiempoTotalMinutos += tiempoEnfermeria || 0;
+      } catch (e) {
+        console.error('Error al obtener procedimientos de enfermería:', e);
+      }
     }
     
     // Procedimientos Auxiliares
-    const procAuxiliares = await ProcedimientoAuxiliar.count({
-      where: { usuarioId }
-    });
-    totalProcedimientos += procAuxiliares;
-    
-    // Procedimientos Auxiliares - calcular tiempo total
-    const procedimientosAuxiliares = await ProcedimientoAuxiliar.findAll({
-      where: { usuarioId },
-      attributes: ['tiempo']
-    });
-    procedimientosAuxiliares.forEach(proc => {
-      if (proc.tiempo) {
-        const [horas, minutos] = proc.tiempo.split(':').map(Number);
-        tiempoTotalMinutos += (horas || 0) * 60 + (minutos || 0);
-      }
-    });
+    try {
+      const ProcedimientoAuxiliar = require('../models/ProcedimientoAuxiliar');
+      const procAuxiliares = await ProcedimientoAuxiliar.count({
+        where: { usuarioId }
+      });
+      totalProcedimientos += procAuxiliares || 0;
+      
+      const procedimientosAuxiliares = await ProcedimientoAuxiliar.findAll({
+        where: { usuarioId },
+        attributes: ['tiempo']
+      });
+      procedimientosAuxiliares.forEach(proc => {
+        tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
+      });
+    } catch (e) {
+      console.error('Error al obtener procedimientos auxiliares:', e);
+    }
     
     // Procedimientos Medicina
-    const procMedicina = await ProcedimientoMedicina.count({
-      where: { usuarioId }
-    });
-    totalProcedimientos += procMedicina;
-    
-    const procedimientosMedicina = await ProcedimientoMedicina.findAll({
-      where: { usuarioId },
-      attributes: ['tiempo']
-    });
-    procedimientosMedicina.forEach(proc => {
-      if (proc.tiempo) {
-        const [horas, minutos] = proc.tiempo.split(':').map(Number);
-        tiempoTotalMinutos += (horas || 0) * 60 + (minutos || 0);
-      }
-    });
+    try {
+      const ProcedimientoMedicina = require('../models/ProcedimientoMedicina');
+      const procMedicina = await ProcedimientoMedicina.count({
+        where: { usuarioId }
+      });
+      totalProcedimientos += procMedicina || 0;
+      
+      const procedimientosMedicina = await ProcedimientoMedicina.findAll({
+        where: { usuarioId },
+        attributes: ['tiempo']
+      });
+      procedimientosMedicina.forEach(proc => {
+        tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
+      });
+    } catch (e) {
+      console.error('Error al obtener procedimientos medicina:', e);
+    }
     
     // Procedimientos TENS
-    const procTENS = await ProcedimientoTENS.count({
-      where: { usuarioId }
-    });
-    totalProcedimientos += procTENS;
-    
-    const procedimientosTENS = await ProcedimientoTENS.findAll({
-      where: { usuarioId },
-      attributes: ['tiempo']
-    });
-    procedimientosTENS.forEach(proc => {
-      if (proc.tiempo) {
-        const [horas, minutos] = proc.tiempo.split(':').map(Number);
-        tiempoTotalMinutos += (horas || 0) * 60 + (minutos || 0);
-      }
-    });
+    try {
+      const ProcedimientoTENS = require('../models/ProcedimientoTENS');
+      const procTENS = await ProcedimientoTENS.count({
+        where: { usuarioId }
+      });
+      totalProcedimientos += procTENS || 0;
+      
+      const procedimientosTENS = await ProcedimientoTENS.findAll({
+        where: { usuarioId },
+        attributes: ['tiempo']
+      });
+      procedimientosTENS.forEach(proc => {
+        tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
+      });
+    } catch (e) {
+      console.error('Error al obtener procedimientos TENS:', e);
+    }
     
     // Procedimientos Kinesiología
-    const procKinesiologia = await ProcedimientoKinesiologia.count({
-      where: { usuarioId }
-    });
-    totalProcedimientos += procKinesiologia;
-    
-    const procedimientosKinesiologia = await ProcedimientoKinesiologia.findAll({
-      where: { usuarioId },
-      attributes: ['tiempo']
-    });
-    procedimientosKinesiologia.forEach(proc => {
-      if (proc.tiempo) {
-        const [horas, minutos] = proc.tiempo.split(':').map(Number);
-        tiempoTotalMinutos += (horas || 0) * 60 + (minutos || 0);
-      }
-    });
+    try {
+      const ProcedimientoKinesiologia = require('../models/ProcedimientoKinesiologia');
+      const procKinesiologia = await ProcedimientoKinesiologia.count({
+        where: { usuarioId }
+      });
+      totalProcedimientos += procKinesiologia || 0;
+      
+      const procedimientosKinesiologia = await ProcedimientoKinesiologia.findAll({
+        where: { usuarioId },
+        attributes: ['tiempo']
+      });
+      procedimientosKinesiologia.forEach(proc => {
+        tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
+      });
+    } catch (e) {
+      console.error('Error al obtener procedimientos kinesiología:', e);
+    }
 
     // 2. Calcular tiempo total formateado
     const tiempoTotalHoras = Math.floor(tiempoTotalMinutos / 60);
     const tiempoTotalMins = tiempoTotalMinutos % 60;
 
     // 3. Total de Categorizaciones del usuario
-    const totalCategorizaciones = await CategorizacionKinesiologia.count({
-      where: { usuarioId }
-    });
+    let totalCategorizaciones = 0;
+    try {
+      const CategorizacionKinesiologia = require('../models/CategorizacionKinesiologia');
+      totalCategorizaciones = await CategorizacionKinesiologia.count({
+        where: { usuarioId }
+      }) || 0;
+    } catch (e) {
+      console.error('Error al obtener categorizaciones:', e);
+    }
 
     // 4. Número de Pacientes Atendidos (únicos de todas las tablas)
     let pacientesSet = new Set();
     
     // Pacientes de procedimientos_registro (Enfermería)
     if (registrosIds.length > 0) {
-      const pacientesEnfermeria = await sequelize.query(
-        `SELECT DISTINCT pacienteRut FROM procedimientos_registro WHERE registroId IN (?) AND pacienteRut IS NOT NULL`,
-        {
-          replacements: [registrosIds],
-          type: sequelize.QueryTypes.SELECT
-        }
-      );
-      pacientesEnfermeria.forEach(p => pacientesSet.add(p.pacienteRut));
+      try {
+        const pacientesEnfermeria = await sequelize.query(
+          `SELECT DISTINCT "pacienteRut" FROM procedimientos_registro WHERE "registroId" IN (:registrosIds) AND "pacienteRut" IS NOT NULL`,
+          {
+            replacements: { registrosIds },
+            type: sequelize.QueryTypes.SELECT
+          }
+        );
+        pacientesEnfermeria.forEach(p => {
+          if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+        });
+      } catch (e) {
+        console.error('Error al obtener pacientes de enfermería:', e);
+      }
     }
     
     // Pacientes de procedimientos_auxiliares
-    const pacientesAuxiliares = await sequelize.query(
-      `SELECT DISTINCT pacienteRut FROM procedimientos_auxiliares WHERE usuarioId = ? AND pacienteRut IS NOT NULL`,
-      {
-        replacements: [usuarioId],
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-    pacientesAuxiliares.forEach(p => pacientesSet.add(p.pacienteRut));
+    try {
+      const pacientesAuxiliares = await sequelize.query(
+        `SELECT DISTINCT "pacienteRut" FROM procedimientos_auxiliares WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
+        {
+          replacements: { usuarioId },
+          type: sequelize.QueryTypes.SELECT
+        }
+      );
+      pacientesAuxiliares.forEach(p => {
+        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+      });
+    } catch (e) {
+      console.error('Error al obtener pacientes auxiliares:', e);
+    }
     
     // Pacientes de procedimientos_medicina
-    const pacientesMedicina = await sequelize.query(
-      `SELECT DISTINCT pacienteRut FROM procedimientos_medicina WHERE usuarioId = ? AND pacienteRut IS NOT NULL`,
-      {
-        replacements: [usuarioId],
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-    pacientesMedicina.forEach(p => pacientesSet.add(p.pacienteRut));
+    try {
+      const pacientesMedicina = await sequelize.query(
+        `SELECT DISTINCT "pacienteRut" FROM procedimientos_medicina WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
+        {
+          replacements: { usuarioId },
+          type: sequelize.QueryTypes.SELECT
+        }
+      );
+      pacientesMedicina.forEach(p => {
+        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+      });
+    } catch (e) {
+      console.error('Error al obtener pacientes medicina:', e);
+    }
     
     // Pacientes de procedimientos_tens
-    const pacientesTENS = await sequelize.query(
-      `SELECT DISTINCT pacienteRut FROM procedimientos_tens WHERE usuarioId = ? AND pacienteRut IS NOT NULL`,
-      {
-        replacements: [usuarioId],
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-    pacientesTENS.forEach(p => pacientesSet.add(p.pacienteRut));
+    try {
+      const pacientesTENS = await sequelize.query(
+        `SELECT DISTINCT "pacienteRut" FROM procedimientos_tens WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
+        {
+          replacements: { usuarioId },
+          type: sequelize.QueryTypes.SELECT
+        }
+      );
+      pacientesTENS.forEach(p => {
+        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+      });
+    } catch (e) {
+      console.error('Error al obtener pacientes TENS:', e);
+    }
     
     // Pacientes de procedimientos_kinesiologia
-    const pacientesKinesiologia = await sequelize.query(
-      `SELECT DISTINCT pacienteRut FROM procedimientos_kinesiologia WHERE usuarioId = ? AND pacienteRut IS NOT NULL`,
-      {
-        replacements: [usuarioId],
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-    pacientesKinesiologia.forEach(p => pacientesSet.add(p.pacienteRut));
+    try {
+      const pacientesKinesiologia = await sequelize.query(
+        `SELECT DISTINCT "pacienteRut" FROM procedimientos_kinesiologia WHERE "usuarioId" = :usuarioId AND "pacienteRut" IS NOT NULL`,
+        {
+          replacements: { usuarioId },
+          type: sequelize.QueryTypes.SELECT
+        }
+      );
+      pacientesKinesiologia.forEach(p => {
+        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+      });
+    } catch (e) {
+      console.error('Error al obtener pacientes kinesiología:', e);
+    }
     
     const numeroPacientesAtendidos = pacientesSet.size;
 
