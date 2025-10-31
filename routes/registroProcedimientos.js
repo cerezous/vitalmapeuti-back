@@ -273,11 +273,11 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
             registroId: { [Op.in]: registrosIds },
             pacienteRut: { [Op.ne]: null }
           },
-          attributes: ['pacienteRut'],
+          attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
           raw: true
         });
         pacientesEnfermeria.forEach(p => {
-          if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+          if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
         });
       } catch (e) {
         console.error('Error al obtener pacientes de enfermería:', e);
@@ -292,11 +292,11 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: ['pacienteRut'],
+        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
         raw: true
       });
       pacientesAuxiliares.forEach(p => {
-        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+        if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
       });
     } catch (e) {
       console.error('Error al obtener pacientes auxiliares:', e);
@@ -310,11 +310,11 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: ['pacienteRut'],
+        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
         raw: true
       });
       pacientesMedicina.forEach(p => {
-        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+        if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
       });
     } catch (e) {
       console.error('Error al obtener pacientes medicina:', e);
@@ -328,11 +328,11 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: ['pacienteRut'],
+        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
         raw: true
       });
       pacientesTENS.forEach(p => {
-        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+        if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
       });
     } catch (e) {
       console.error('Error al obtener pacientes TENS:', e);
@@ -346,11 +346,11 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
           usuarioId,
           pacienteRut: { [Op.ne]: null }
         },
-        attributes: ['pacienteRut'],
+        attributes: [[sequelize.fn('DISTINCT', sequelize.col('pacienteRut')), 'pacienteRut']],
         raw: true
       });
       pacientesKinesiologia.forEach(p => {
-        if (p && p.pacienteRut) pacientesSet.add(p.pacienteRut);
+        if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
       });
     } catch (e) {
       console.error('Error al obtener pacientes kinesiología:', e);
