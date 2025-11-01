@@ -292,6 +292,93 @@ router.post('/', authenticateToken, requireTensOrAdmin, async (req, res) => {
 });
 
 // DELETE /api/procedimientos-tens/:id - Eliminar registro
+// PUT /api/procedimientos-tens/:id - Actualizar registro TENS
+router.put('/:id', authenticateToken, requireTensOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fecha, turno } = req.body;
+    const usuarioId = req.user.id;
+
+    const registro = await RegistroProcedimientosTENS.findByPk(id);
+    
+    if (!registro) {
+      return res.status(404).json({
+        success: false,
+        message: 'Registro TENS no encontrado'
+      });
+    }
+
+    // Verificar permisos
+    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador') {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para modificar este registro'
+      });
+    }
+
+    // Validar turno si se proporciona
+    if (turno && !['Día', 'Noche', '24 h'].includes(turno)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El turno debe ser "Día", "Noche" o "24 h"'
+      });
+    }
+
+    // Actualizar campos
+    const updates = {};
+    if (fecha) updates.fecha = fecha;
+    if (turno) updates.turno = turno;
+
+    await registro.update(updates);
+
+    // Obtener el registro actualizado con relaciones
+    const registroActualizado = await RegistroProcedimientosTENS.findByPk(id, {
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['nombres', 'apellidos', 'usuario', 'estamento']
+        },
+        {
+          model: ProcedimientoTENS,
+          as: 'procedimientos',
+          include: [
+            {
+              model: Paciente,
+              as: 'paciente',
+              attributes: ['nombreCompleto', 'rut', 'numeroFicha', 'camaAsignada'],
+              required: false
+            }
+          ]
+        }
+      ]
+    });
+
+    res.json({
+      success: true,
+      message: 'Registro TENS actualizado exitosamente',
+      data: registroActualizado
+    });
+
+  } catch (error) {
+    console.error('Error al actualizar registro TENS:', error);
+    
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Error de validación',
+        error: error.errors.map(e => e.message).join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el registro TENS',
+      error: error.message
+    });
+  }
+});
+
 router.delete('/:id', authenticateToken, requireTensOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
