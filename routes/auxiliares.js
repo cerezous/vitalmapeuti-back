@@ -337,12 +337,8 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     // Calcular rango de fechas del mes actual
     const hoy = new Date();
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
     
-    const inicioMesStr = inicioMes.toISOString().split('T')[0];
-    const finMesStr = finMes.toISOString().split('T')[0];
-    
-    console.log('📅 Rango del mes:', inicioMesStr, 'a', finMesStr);
+    console.log('📅 Inicio del mes:', inicioMes);
     
     // Función helper para convertir tiempo HH:MM a minutos
     const tiempoAMinutos = (tiempo) => {
@@ -362,8 +358,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     const procedimientosMes = await ProcedimientoAuxiliar.findAll({
       where: {
         fecha: {
-          [Op.gte]: inicioMesStr,
-          [Op.lte]: finMesStr
+          [Op.gte]: inicioMes
         }
       },
       attributes: ['tiempo', 'fecha', 'turno'],
