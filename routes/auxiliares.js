@@ -332,15 +332,18 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
 // Obtener métricas para el dashboard de auxiliares
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
+    const usuarioId = req.user.id;
+    
     // Fecha del mes actual en formato YYYY-MM-DD
     const hoy = new Date();
     const año = hoy.getFullYear();
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${año}-${mes}-01`;
     
-    // Obtener procedimientos del mes actual
+    // Obtener procedimientos del mes actual del usuario
     const procedimientosMes = await ProcedimientoAuxiliar.findAll({
       where: {
+        usuarioId,
         fecha: {
           [Op.gte]: inicioMes
         }
@@ -349,10 +352,19 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       raw: true
     });
 
-    // Calcular tiempo total en minutos
+    // Calcular tiempo total en minutos con validación
     const tiempoTotalMinutos = procedimientosMes.reduce((total, proc) => {
-      const [horas, minutos] = proc.tiempo.split(':').map(Number);
-      return total + (horas * 60) + minutos;
+      if (!proc.tiempo || typeof proc.tiempo !== 'string') return total;
+      try {
+        const partes = proc.tiempo.split(':');
+        if (partes.length !== 2) return total;
+        const horas = parseInt(partes[0]) || 0;
+        const minutos = parseInt(partes[1]) || 0;
+        return total + (horas * 60) + minutos;
+      } catch (e) {
+        console.warn('Error al parsear tiempo:', proc.tiempo, e);
+        return total;
+      }
     }, 0);
     
     const tiempoTotalHoras = Math.floor(tiempoTotalMinutos / 60);
@@ -382,13 +394,19 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       } else if (proc.turno === 'Noche') {
         turnosNoche.add(`${proc.fecha}-${proc.turno}`);
         procedimientosNoche++;
+      } else if (proc.turno === '24 h') {
+        // Los turnos de 24h cuentan para ambos promedios
+        turnosDia.add(`${proc.fecha}-Día`);
+        turnosNoche.add(`${proc.fecha}-Noche`);
+        procedimientosDia++;
+        procedimientosNoche++;
       }
     });
     
     const promedioDia = turnosDia.size > 0 ? 
-      Math.round(procedimientosDia / turnosDia.size) : 0;
+      Math.round((procedimientosDia / turnosDia.size) * 100) / 100 : 0;
     const promedioNoche = turnosNoche.size > 0 ? 
-      Math.round(procedimientosNoche / turnosNoche.size) : 0;
+      Math.round((procedimientosNoche / turnosNoche.size) * 100) / 100 : 0;
 
     // Calcular ratio auxiliar (auxiliares activos vs camas ocupadas)
     const hace30Dias = new Date();
