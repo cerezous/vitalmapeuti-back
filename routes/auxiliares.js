@@ -397,7 +397,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     const promedioNoche = turnosNoche.size > 0 ? 
       Math.round((procedimientosNoche / turnosNoche.size) * 100) / 100 : 0;
 
-    res.json({
+    const response = {
       message: 'Métricas obtenidas exitosamente',
       data: {
         totalProcedimientos: {
@@ -421,15 +421,25 @@ router.get('/metricas', authenticateToken, async (req, res) => {
           totalProcedimientos: procedimientosNoche
         }
       }
-    });
+    };
+    
+    console.log('✅ Métricas calculadas:', JSON.stringify(response.data, null, 2));
+    
+    res.json(response);
 
   } catch (error) {
-    console.error('Error al obtener métricas:', error);
+    console.error('❌ Error al obtener métricas:', error);
     console.error('Stack trace:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    if (error.errors) {
+      console.error('Validation errors:', error.errors);
+    }
     res.status(500).json({
       error: 'Error interno del servidor',
       message: 'Ocurrió un error al obtener las métricas',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
