@@ -102,14 +102,17 @@ router.post('/batch', authenticateToken, async (req, res) => {
 // Obtener todos los procedimientos (para listado general)
 router.get('/todos', authenticateToken, async (req, res) => {
   try {
-    const { page = 1, limit = 50, fechaDesde, fechaHasta } = req.query;
+    const { page = 1, limit = 50, fechaDesde, fechaHasta, turno } = req.query;
 
-    // Construir filtros de fecha
+    // Construir filtros de fecha y turno
     const whereClause = {};
     if (fechaDesde || fechaHasta) {
       whereClause.fecha = {};
       if (fechaDesde) whereClause.fecha[Op.gte] = fechaDesde;
       if (fechaHasta) whereClause.fecha[Op.lte] = fechaHasta;
+    }
+    if (turno) {
+      whereClause.turno = turno;
     }
 
     const offset = (page - 1) * limit;
