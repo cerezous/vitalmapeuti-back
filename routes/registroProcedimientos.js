@@ -731,6 +731,17 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       });
     }
 
+    // Verificar que el usuario sea el propietario o administrador
+    if (registro.usuarioId !== req.user.id) {
+      const usuario = await Usuario.findByPk(req.user.id);
+      if (usuario.estamento !== 'Administrador') {
+        return res.status(403).json({
+          error: 'Sin permisos',
+          message: 'Solo puede eliminar sus propios registros'
+        });
+      }
+    }
+
     // Eliminar procedimientos asociados primero
     await ProcedimientoRegistro.destroy({
       where: { registroId: id },
