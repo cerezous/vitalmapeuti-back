@@ -257,7 +257,8 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
     const { 
       fechaDesde, 
       fechaHasta, 
-      limit = 20 
+      limit = 50,
+      offset = 0
     } = req.query;
 
     // Construir filtros
@@ -268,7 +269,7 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
       if (fechaHasta) whereClause.fecha[Op.lte] = fechaHasta;
     }
 
-    // Obtener procedimientos con sus relaciones
+    // Obtener todos los procedimientos necesarios para agrupar
     const procedimientos = await ProcedimientoAuxiliar.findAll({
       where: whereClause,
       include: [
@@ -283,8 +284,7 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
           attributes: ['nombreCompleto', 'rut', 'numeroFicha', 'camaAsignada']
         }
       ],
-      order: [['fecha', 'DESC'], ['createdAt', 'DESC']],
-      limit: parseInt(limit) * 10 // Obtener más registros para agrupar
+      order: [['fecha', 'DESC'], ['createdAt', 'DESC']]
     });
 
     // Agrupar por fecha, turno y usuario
@@ -313,12 +313,17 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
 
     // Convertir a array y ordenar
     const gruposArray = Object.values(grupos)
-      .sort((a, b) => b.fecha.localeCompare(a.fecha))
-      .slice(0, parseInt(limit));
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+    // Aplicar paginación
+    const limitNum = parseInt(limit);
+    const offsetNum = parseInt(offset);
+    const gruposPaginados = gruposArray.slice(offsetNum, offsetNum + limitNum);
 
     res.json({
       message: 'Procedimientos agrupados obtenidos exitosamente',
-      data: gruposArray
+      data: gruposPaginados,
+      total: gruposArray.length
     });
 
   } catch (error) {
