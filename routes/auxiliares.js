@@ -329,11 +329,10 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtener métricas para el dashboard de auxiliares
+// Obtener métricas para el dashboard de auxiliares (totales de todos los usuarios)
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
-    const usuarioId = req.user.id;
-    console.log('🔍 Obteniendo métricas para usuarioId:', usuarioId);
+    console.log('🔍 Obteniendo métricas globales de auxiliares');
     
     // Fecha del mes actual en formato YYYY-MM-DD
     const hoy = new Date();
@@ -341,23 +340,10 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${año}-${mes}-01`;
     console.log('📅 Fecha inicio mes:', inicioMes);
-    console.log('👤 Usuario ID:', usuarioId);
     
-    // Verificar que el usuario existe
-    const usuario = await Usuario.findByPk(usuarioId);
-    if (!usuario) {
-      console.error('❌ Usuario no encontrado:', usuarioId);
-      return res.status(404).json({
-        error: 'Usuario no encontrado',
-        message: 'No se pudo verificar la identidad del usuario'
-      });
-    }
-    
-    // Obtener procedimientos del mes actual del usuario
-    // Intentar primero con formato string
+    // Obtener procedimientos del mes actual de TODOS los usuarios
     let procedimientosMes = await ProcedimientoAuxiliar.findAll({
       where: {
-        usuarioId,
         fecha: {
           [Op.gte]: inicioMes
         }
@@ -373,7 +359,6 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       const inicioMesDate = new Date(inicioMes);
       procedimientosMes = await ProcedimientoAuxiliar.findAll({
         where: {
-          usuarioId,
           fecha: {
             [Op.gte]: inicioMesDate
           }
@@ -384,7 +369,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       });
     }
     
-    console.log('📊 Procedimientos encontrados:', procedimientosMes.length);
+    console.log('📊 Procedimientos encontrados (todos los usuarios):', procedimientosMes.length);
     if (procedimientosMes.length > 0) {
       console.log('📋 Primer procedimiento:', JSON.stringify(procedimientosMes[0], null, 2));
     }
