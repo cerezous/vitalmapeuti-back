@@ -464,51 +464,56 @@ router.delete('/:id/procedimientos/:procId', authenticateToken, requireTensOrAdm
 // GET /api/procedimientos-tens/metricas/dashboard - Métricas para el dashboard
 router.get('/metricas/dashboard', authenticateToken, async (req, res) => {
   try {
+    const usuarioId = req.user.id;
     const fechaActual = new Date();
     const inicioMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1);
 
-    // Total de procedimientos
-    const totalProcedimientos = await ProcedimientoTENS.count();
+    // Total de procedimientos del usuario
+    const totalProcedimientos = await ProcedimientoTENS.count({
+      include: [{
+        model: RegistroProcedimientosTENS,
+        as: 'registro',
+        where: { usuarioId },
+        required: true
+      }]
+    });
 
-    // Registros este mes
+    // Registros del usuario este mes
     const registrosEsteMes = await RegistroProcedimientosTENS.count({
       where: {
+        usuarioId,
         fecha: {
           [Op.gte]: inicioMes
         }
       }
     });
 
-    // Tiempo promedio del procedimiento "Aseo y cuidados del paciente"
-    const procedimientoAseo = await ProcedimientoTENS.findOne({
+    // Tiempo promedio del procedimiento "Aseo y cuidados del paciente" del usuario
+    let tiempoPromedioAseo = 0;
+    const procedimientosAseo = await ProcedimientoTENS.findAll({
       where: {
         nombre: 'Aseo y cuidados del paciente (aseo parcial o completo, cuidados de la piel, etc)'
-      }
+      },
+      include: [{
+        model: RegistroProcedimientosTENS,
+        as: 'registro',
+        where: { usuarioId },
+        required: true
+      }]
     });
     
-    let tiempoPromedioAseo = 0;
-    if (procedimientoAseo) {
-      
-      // Buscar todos los procedimientos con el nombre de aseo (no por ID específico)
-      const procedimientosAseo = await ProcedimientoTENS.findAll({
-        where: {
-          nombre: 'Aseo y cuidados del paciente (aseo parcial o completo, cuidados de la piel, etc)'
-        }
+    if (procedimientosAseo.length > 0) {
+      const tiemposTotales = procedimientosAseo.map(proc => {
+        const minutos = convertirTiempoAMinutos(proc.tiempo);
+        return minutos;
       });
-      
-      
-      if (procedimientosAseo.length > 0) {
-        const tiemposTotales = procedimientosAseo.map(proc => {
-          const minutos = convertirTiempoAMinutos(proc.tiempo);
-          return minutos;
-        });
-        
-        const tiempoTotal = tiemposTotales.reduce((sum, tiempo) => sum + tiempo, 0);
-        tiempoPromedioAseo = Math.round(tiempoTotal / tiemposTotales.length);
-        
-      }
-    }    // Tiempo total acumulado
+      const tiempoTotal = tiemposTotales.reduce((sum, tiempo) => sum + tiempo, 0);
+      tiempoPromedioAseo = Math.round(tiempoTotal / tiemposTotales.length);
+    }
+
+    // Tiempo total acumulado del usuario
     const registrosConTiempo = await RegistroProcedimientosTENS.findAll({
+      where: { usuarioId },
       attributes: ['tiempoTotal']
     });
 
@@ -519,8 +524,10 @@ router.get('/metricas/dashboard', authenticateToken, async (req, res) => {
     const horas = Math.floor(tiempoTotalMinutos / 60);
     const minutosRestantes = tiempoTotalMinutos % 60;
 
-    // Promedio de procedimientos por turno
-    const totalRegistros = await RegistroProcedimientosTENS.count();
+    // Promedio de procedimientos por turno del usuario
+    const totalRegistros = await RegistroProcedimientosTENS.count({
+      where: { usuarioId }
+    });
     const promedioProcedimientos = totalRegistros > 0 ? totalProcedimientos / totalRegistros : 0;
 
     res.json({
@@ -549,10 +556,11 @@ router.get('/metricas/dashboard', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error al obtener métricas dashboard TENS:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error al obtener las métricas del dashboard TENS',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

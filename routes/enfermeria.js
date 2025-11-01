@@ -264,16 +264,19 @@ router.get('/dia/:pacienteRut/:fecha', authenticateToken, async (req, res) => {
 // GET /api/enfermeria/metricas - Obtener métricas del dashboard de enfermería
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
+    const usuarioId = req.user.id;
+    
     // Fecha del mes actual en formato YYYY-MM-DD
     const hoy = new Date();
     const año = hoy.getFullYear();
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${año}-${mes}-01`;
     
-    // Obtener registros de procedimientos del mes actual de enfermería
+    // Obtener registros de procedimientos del mes actual de enfermería del usuario
     // Los registros de enfermería tienen turno "Día" o "Noche" (medicina tiene "24 h")
     const registrosMes = await RegistroProcedimientos.findAll({
       where: {
+        usuarioId,
         fecha: {
           [Op.gte]: inicioMes
         },
@@ -305,9 +308,11 @@ router.get('/metricas', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener métricas de enfermería:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'Ocurrió un error al obtener las métricas de enfermería'
+      message: 'Ocurrió un error al obtener las métricas de enfermería',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

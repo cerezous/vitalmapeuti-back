@@ -230,14 +230,29 @@ router.get('/', authenticateToken, async (req, res) => {
 // Obtener métricas de medicina
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
+    const usuarioId = req.user.id;
     const hoy = new Date();
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
+    // Función helper para convertir tiempo HH:MM a minutos
+    const tiempoAMinutos = (tiempo) => {
+      if (!tiempo || typeof tiempo !== 'string') return 0;
+      try {
+        const partes = tiempo.split(':');
+        if (partes.length !== 2) return 0;
+        const horas = parseInt(partes[0]) || 0;
+        const minutos = parseInt(partes[1]) || 0;
+        return horas * 60 + minutos;
+      } catch (e) {
+        return 0;
+      }
+    };
 
-    // 1. TOTAL DE PROCEDIMIENTOS DEL MES (todos los usuarios)
+    // 1. TOTAL DE PROCEDIMIENTOS DEL MES (del usuario)
     const totalProcedimientosMes = await ProcedimientoMedicina.count({
       where: {
+        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]
@@ -245,9 +260,10 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       }
     });
 
-    // 2. TIEMPO TOTAL DEL MES (todos los usuarios)
+    // 2. TIEMPO TOTAL DEL MES (del usuario)
     const procedimientosTiempo = await ProcedimientoMedicina.findAll({
       where: {
+        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]
@@ -258,17 +274,17 @@ router.get('/metricas', authenticateToken, async (req, res) => {
 
     let tiempoTotalMinutos = 0;
     procedimientosTiempo.forEach(proc => {
-      const [horas, minutos] = proc.tiempo.split(':').map(Number);
-      tiempoTotalMinutos += horas * 60 + minutos;
+      tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
     });
 
     const tiempoTotalHoras = Math.floor(tiempoTotalMinutos / 60);
     const minutosRestantes = tiempoTotalMinutos % 60;
 
     // 3. ANÁLISIS POR TURNOS (SESIONES DE REGISTRO)
-    // Obtener todas las sesiones de registro del mes (agrupadas por usuario, fecha y turno)
+    // Obtener todas las sesiones de registro del mes del usuario (agrupadas por usuario, fecha y turno)
     const procedimientosDelMes = await ProcedimientoMedicina.findAll({
       where: {
+        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]
@@ -287,6 +303,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     // Obtener solo los procedimientos de "Interconsulta" para calcular su promedio de tiempo
     const procedimientosInterconsulta = await ProcedimientoMedicina.findAll({
       where: {
+        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]
@@ -300,8 +317,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     let promedioInterconsulta = 0;
     if (procedimientosInterconsulta.length > 0) {
       const tiempoTotalInterconsulta = procedimientosInterconsulta.reduce((total, proc) => {
-        const [horas, minutos] = proc.tiempo.split(':').map(Number);
-        return total + (horas * 60 + minutos);
+        return total + tiempoAMinutos(proc.tiempo);
       }, 0);
       promedioInterconsulta = tiempoTotalInterconsulta / procedimientosInterconsulta.length;
     }
@@ -410,9 +426,11 @@ router.get('/metricas', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener métricas de medicina:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'Ocurrió un error al obtener las métricas de medicina'
+      message: 'Ocurrió un error al obtener las métricas de medicina',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
