@@ -333,12 +333,14 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
     const usuarioId = req.user.id;
+    console.log('🔍 Obteniendo métricas para usuarioId:', usuarioId);
     
     // Fecha del mes actual en formato YYYY-MM-DD
     const hoy = new Date();
     const año = hoy.getFullYear();
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${año}-${mes}-01`;
+    console.log('📅 Fecha inicio mes:', inicioMes);
     
     // Obtener procedimientos del mes actual del usuario
     const procedimientosMes = await ProcedimientoAuxiliar.findAll({
@@ -349,8 +351,11 @@ router.get('/metricas', authenticateToken, async (req, res) => {
         }
       },
       attributes: ['tiempo', 'fecha', 'turno'],
-      raw: true
+      raw: true,
+      order: [['fecha', 'DESC']]
     });
+    
+    console.log('📊 Procedimientos encontrados:', procedimientosMes.length);
 
     // Calcular tiempo total en minutos con validación
     const tiempoTotalMinutos = procedimientosMes.reduce((total, proc) => {
