@@ -185,7 +185,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
 
     // Calcular promedio de puntaje
     const promedioPuntaje = pacientesCategorizados > 0 ? 
-      (sumaPuntajes / pacientesCategorizados).toFixed(1) : 0;
+      parseFloat((sumaPuntajes / pacientesCategorizados).toFixed(1)) : 0;
     
     // Determinar complejidad predominante
     let complejidadPredominante = 'Sin categorizar';
