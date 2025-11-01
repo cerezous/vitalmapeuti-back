@@ -227,7 +227,6 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtener métricas de medicina
 // Obtener métricas de medicina (totales de todos los usuarios)
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
