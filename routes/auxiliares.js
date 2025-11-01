@@ -370,17 +370,6 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     const tiempoTotalHoras = Math.floor(tiempoTotalMinutos / 60);
     const tiempoTotalMins = tiempoTotalMinutos % 60;
 
-    // Obtener información de camas activas
-    const pacientesActivos = await Paciente.count({
-      where: {
-        camaAsignada: { [Op.ne]: null },
-        fechaEgresoUTI: null
-      }
-    });
-
-    const totalCamas = 27; // Total de camas en la UTI
-    const porcentajeOcupacion = Math.round((pacientesActivos / totalCamas) * 100);
-
     // Calcular promedio de procedimientos por turno (separado por Día y Noche)
     const turnosDia = new Set();
     const turnosNoche = new Set();
@@ -407,42 +396,6 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       Math.round((procedimientosDia / turnosDia.size) * 100) / 100 : 0;
     const promedioNoche = turnosNoche.size > 0 ? 
       Math.round((procedimientosNoche / turnosNoche.size) * 100) / 100 : 0;
-
-    // Calcular ratio auxiliar (auxiliares activos vs camas ocupadas)
-    const hace30Dias = new Date();
-    hace30Dias.setDate(hace30Dias.getDate() - 30);
-    
-    const auxiliaresActivos = await Usuario.count({
-      distinct: true,
-      col: 'id',
-      where: {
-        estamento: 'Auxiliares'
-      },
-      include: [{
-        model: ProcedimientoAuxiliar,
-        as: 'procedimientosAuxiliares',
-        where: {
-          createdAt: {
-            [Op.gte]: hace30Dias
-          }
-        },
-        required: true
-      }]
-    });
-
-    const ratioAuxiliar = auxiliaresActivos > 0 ? 
-      (pacientesActivos / auxiliaresActivos).toFixed(1) : '0.0';
-    
-    // Determinar nivel del ratio
-    const ratioNumero = parseFloat(ratioAuxiliar);
-    let nivelRatio;
-    if (ratioNumero <= 15) {
-      nivelRatio = 'optimo';
-    } else if (ratioNumero <= 20) {
-      nivelRatio = 'aceptable';
-    } else {
-      nivelRatio = 'critico';
-    }
 
     res.json({
       message: 'Métricas obtenidas exitosamente',
@@ -472,9 +425,11 @@ router.get('/metricas', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener métricas:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'Ocurrió un error al obtener las métricas'
+      message: 'Ocurrió un error al obtener las métricas',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
