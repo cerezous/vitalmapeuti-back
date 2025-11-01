@@ -287,15 +287,16 @@ router.get('/agrupados', authenticateToken, async (req, res) => {
       limit: parseInt(limit) * 10 // Obtener más registros para agrupar
     });
 
-    // Agrupar por fecha y turno
+    // Agrupar por fecha, turno y usuario
     const grupos = {};
     
     procedimientos.forEach(proc => {
-      const key = `${proc.fecha}-${proc.turno}`;
+      const key = `${proc.fecha}-${proc.turno}-${proc.usuarioId}`;
       if (!grupos[key]) {
         grupos[key] = {
           fecha: proc.fecha,
           turno: proc.turno,
+          usuarioId: proc.usuarioId,
           procedimientos: [],
           tiempoTotal: 0,
           cantidadProcedimientos: 0
