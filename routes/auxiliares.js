@@ -334,18 +334,36 @@ router.get('/metricas', authenticateToken, async (req, res) => {
   try {
     console.log('🔍 Obteniendo métricas globales de auxiliares');
     
-    // Fecha del mes actual en formato YYYY-MM-DD
+    // Calcular rango de fechas del mes actual
     const hoy = new Date();
-    const año = hoy.getFullYear();
-    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-    const inicioMes = `${año}-${mes}-01`;
-    console.log('📅 Fecha inicio mes:', inicioMes);
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+    
+    const inicioMesStr = inicioMes.toISOString().split('T')[0];
+    const finMesStr = finMes.toISOString().split('T')[0];
+    
+    console.log('📅 Rango del mes:', inicioMesStr, 'a', finMesStr);
+    
+    // Función helper para convertir tiempo HH:MM a minutos
+    const tiempoAMinutos = (tiempo) => {
+      if (!tiempo || typeof tiempo !== 'string') return 0;
+      try {
+        const partes = tiempo.split(':');
+        if (partes.length !== 2) return 0;
+        const horas = parseInt(partes[0]) || 0;
+        const minutos = parseInt(partes[1]) || 0;
+        return horas * 60 + minutos;
+      } catch (e) {
+        return 0;
+      }
+    };
     
     // Obtener procedimientos del mes actual de TODOS los usuarios
-    let procedimientosMes = await ProcedimientoAuxiliar.findAll({
+    const procedimientosMes = await ProcedimientoAuxiliar.findAll({
       where: {
         fecha: {
-          [Op.gte]: inicioMes
+          [Op.gte]: inicioMesStr,
+          [Op.lte]: finMesStr
         }
       },
       attributes: ['tiempo', 'fecha', 'turno'],
@@ -353,44 +371,19 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       order: [['fecha', 'DESC']]
     });
     
-    // Si no hay resultados, intentar con formato Date
-    if (procedimientosMes.length === 0) {
-      console.log('⚠️ No se encontraron procedimientos con formato string, intentando con Date');
-      const inicioMesDate = new Date(inicioMes);
-      procedimientosMes = await ProcedimientoAuxiliar.findAll({
-        where: {
-          fecha: {
-            [Op.gte]: inicioMesDate
-          }
-        },
-        attributes: ['tiempo', 'fecha', 'turno'],
-        raw: true,
-        order: [['fecha', 'DESC']]
-      });
-    }
-    
     console.log('📊 Procedimientos encontrados (todos los usuarios):', procedimientosMes.length);
     if (procedimientosMes.length > 0) {
       console.log('📋 Primer procedimiento:', JSON.stringify(procedimientosMes[0], null, 2));
     }
 
-    // Calcular tiempo total en minutos con validación
-    const tiempoTotalMinutos = procedimientosMes.reduce((total, proc) => {
-      if (!proc.tiempo || typeof proc.tiempo !== 'string') return total;
-      try {
-        const partes = proc.tiempo.split(':');
-        if (partes.length !== 2) return total;
-        const horas = parseInt(partes[0]) || 0;
-        const minutos = parseInt(partes[1]) || 0;
-        return total + (horas * 60) + minutos;
-      } catch (e) {
-        console.warn('Error al parsear tiempo:', proc.tiempo, e);
-        return total;
-      }
-    }, 0);
+    // Calcular tiempo total en minutos
+    let tiempoTotalMinutos = 0;
+    procedimientosMes.forEach(proc => {
+      tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
+    });
     
     const tiempoTotalHoras = Math.floor(tiempoTotalMinutos / 60);
-    const tiempoTotalMins = tiempoTotalMinutos % 60;
+    const minutosRestantes = tiempoTotalMinutos % 60;
 
     // Calcular promedio de procedimientos por turno (separado por Día y Noche)
     const turnosDia = new Set();
@@ -446,8 +439,8 @@ router.get('/metricas', authenticateToken, async (req, res) => {
         tiempoTotal: {
           minutos: tiempoTotalMinutos,
           horas: tiempoTotalHoras,
-          minutosRestantes: tiempoTotalMins,
-          texto: `${tiempoTotalHoras}h ${tiempoTotalMins}m`
+          minutosRestantes: minutosRestantes,
+          texto: `${tiempoTotalHoras}h ${minutosRestantes}m`
         },
         promedioDia: {
           promedio: promedioDia,
