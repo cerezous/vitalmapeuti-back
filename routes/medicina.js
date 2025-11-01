@@ -434,7 +434,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, tiempo, pacienteRut, observaciones } = req.body;
+    const { nombre, tiempo, pacienteRut, observaciones, fecha } = req.body;
     
     const procedimiento = await ProcedimientoMedicina.findByPk(id);
     if (!procedimiento) {
@@ -496,7 +496,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
       nombre,
       tiempo,
       pacienteRut: pacienteRut || null,
-      observaciones: observaciones || null
+      observaciones: observaciones || null,
+      fecha: fecha || procedimiento.fecha
     });
 
     // Obtener el procedimiento actualizado con relaciones

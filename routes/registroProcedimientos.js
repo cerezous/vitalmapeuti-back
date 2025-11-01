@@ -629,6 +629,92 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Actualizar registro
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fecha, turno } = req.body;
+
+    const registro = await RegistroProcedimientos.findByPk(id);
+    
+    if (!registro) {
+      return res.status(404).json({
+        error: 'Registro no encontrado',
+        message: `No existe un registro con ID ${id}`
+      });
+    }
+
+    // Verificar permisos
+    if (registro.usuarioId !== req.user.id) {
+      const usuario = await Usuario.findByPk(req.user.id);
+      if (usuario.estamento !== 'Administrador') {
+        return res.status(403).json({
+          error: 'Sin permisos',
+          message: 'Solo puede editar sus propios registros'
+        });
+      }
+    }
+
+    // Validar turno si se proporciona
+    if (turno && !['Día', 'Noche', '24 h'].includes(turno)) {
+      return res.status(400).json({
+        error: 'Turno inválido',
+        message: 'El turno debe ser "Día", "Noche" o "24 h"'
+      });
+    }
+
+    // Actualizar campos
+    const updates = {};
+    if (fecha) updates.fecha = fecha;
+    if (turno) updates.turno = turno;
+
+    await registro.update(updates);
+
+    // Obtener el registro actualizado con relaciones
+    const registroActualizado = await RegistroProcedimientos.findByPk(id, {
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['nombres', 'apellidos', 'usuario', 'estamento']
+        },
+        {
+          model: ProcedimientoRegistro,
+          as: 'procedimientos',
+          include: [
+            {
+              model: Paciente,
+              as: 'paciente',
+              attributes: ['nombreCompleto', 'rut', 'numeroFicha', 'camaAsignada'],
+              required: false
+            }
+          ]
+        }
+      ]
+    });
+
+    res.json({
+      message: 'Registro actualizado exitosamente',
+      data: registroActualizado
+    });
+
+  } catch (error) {
+    console.error('Error al actualizar registro:', error);
+    
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        error: 'Error de validación',
+        message: error.errors.map(e => e.message).join(', ')
+      });
+    }
+
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'Ocurrió un error al actualizar el registro'
+    });
+  }
+});
+
 // Eliminar registro
 router.delete('/:id', authenticateToken, async (req, res) => {
   const transaction = await sequelize.transaction();

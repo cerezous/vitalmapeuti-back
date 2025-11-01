@@ -463,6 +463,112 @@ router.get('/metricas', authenticateToken, async (req, res) => {
   }
 });
 
+// Actualizar procedimiento auxiliar
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, tiempo, pacienteRut, observaciones, fecha, turno } = req.body;
+    
+    const procedimiento = await ProcedimientoAuxiliar.findByPk(id);
+    
+    if (!procedimiento) {
+      return res.status(404).json({
+        error: 'Procedimiento no encontrado',
+        message: `No existe un procedimiento auxiliar con ID ${id}`
+      });
+    }
+
+    // Verificar permisos
+    const usuario = await Usuario.findByPk(req.user.id);
+    if (usuario.estamento !== 'Administrador' && procedimiento.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        error: 'Acceso denegado',
+        message: 'Solo puedes editar tus propios procedimientos o ser administrador'
+      });
+    }
+
+    // Validaciones
+    if (!nombre || !tiempo) {
+      return res.status(400).json({
+        error: 'Datos requeridos',
+        message: 'El nombre y tiempo son obligatorios'
+      });
+    }
+
+    // Validar que el procedimiento sea válido
+    const procedimientosValidos = ProcedimientoAuxiliar.getProcedimientosValidos();
+    if (!procedimientosValidos.includes(nombre)) {
+      return res.status(400).json({
+        error: 'Procedimiento inválido',
+        message: `El procedimiento "${nombre}" no es válido para auxiliares`
+      });
+    }
+
+    // Validar tiempo
+    if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(tiempo)) {
+      return res.status(400).json({
+        error: 'Tiempo inválido',
+        message: 'El tiempo debe estar en formato HH:MM'
+      });
+    }
+
+    // Validar turno si se proporciona
+    if (turno && !['Día', 'Noche', '24 h'].includes(turno)) {
+      return res.status(400).json({
+        error: 'Turno inválido',
+        message: 'El turno debe ser "Día", "Noche" o "24 h"'
+      });
+    }
+
+    // Actualizar el procedimiento
+    await procedimiento.update({
+      nombre,
+      tiempo,
+      pacienteRut: pacienteRut || null,
+      observaciones: observaciones || null,
+      fecha: fecha || procedimiento.fecha,
+      turno: turno || procedimiento.turno
+    });
+
+    // Obtener el procedimiento actualizado con relaciones
+    const procedimientoActualizado = await ProcedimientoAuxiliar.findByPk(id, {
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['nombres', 'apellidos', 'usuario', 'estamento']
+        },
+        {
+          model: Paciente,
+          as: 'paciente',
+          attributes: ['nombreCompleto', 'rut', 'numeroFicha', 'camaAsignada'],
+          required: false
+        }
+      ]
+    });
+
+    res.json({
+      message: 'Procedimiento auxiliar actualizado exitosamente',
+      data: procedimientoActualizado
+    });
+
+  } catch (error) {
+    console.error('Error al actualizar procedimiento auxiliar:', error);
+    
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        error: 'Error de validación',
+        message: error.errors.map(e => e.message).join(', ')
+      });
+    }
+
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'Ocurrió un error al actualizar el procedimiento auxiliar'
+    });
+  }
+});
+
 // Eliminar procedimiento auxiliar
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
