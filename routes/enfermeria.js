@@ -296,12 +296,44 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       return sum + (registro.procedimientos?.length || 0);
     }, 0);
 
+    // Calcular promedios por turno
+    const turnosDia = new Set();
+    const turnosNoche = new Set();
+    let procedimientosDia = 0;
+    let procedimientosNoche = 0;
+
+    registrosMes.forEach(registro => {
+      const cantidadProc = registro.procedimientos?.length || 0;
+      if (registro.turno === 'Día') {
+        turnosDia.add(`${registro.fecha}-${registro.turno}`);
+        procedimientosDia += cantidadProc;
+      } else if (registro.turno === 'Noche') {
+        turnosNoche.add(`${registro.fecha}-${registro.turno}`);
+        procedimientosNoche += cantidadProc;
+      }
+    });
+
+    const promedioDia = turnosDia.size > 0 ? 
+      Math.round((procedimientosDia / turnosDia.size) * 100) / 100 : 0;
+    const promedioNoche = turnosNoche.size > 0 ? 
+      Math.round((procedimientosNoche / turnosNoche.size) * 100) / 100 : 0;
+
     res.json({
       message: 'Métricas obtenidas exitosamente',
       data: {
         totalProcedimientos: {
           cantidad: totalProcedimientos,
           texto: `${totalProcedimientos}`
+        },
+        promedioDia: {
+          promedio: promedioDia,
+          totalTurnos: turnosDia.size,
+          totalProcedimientos: procedimientosDia
+        },
+        promedioNoche: {
+          promedio: promedioNoche,
+          totalTurnos: turnosNoche.size,
+          totalProcedimientos: procedimientosNoche
         }
       }
     });
