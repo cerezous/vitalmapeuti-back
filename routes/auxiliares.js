@@ -341,9 +341,21 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${año}-${mes}-01`;
     console.log('📅 Fecha inicio mes:', inicioMes);
+    console.log('👤 Usuario ID:', usuarioId);
+    
+    // Verificar que el usuario existe
+    const usuario = await Usuario.findByPk(usuarioId);
+    if (!usuario) {
+      console.error('❌ Usuario no encontrado:', usuarioId);
+      return res.status(404).json({
+        error: 'Usuario no encontrado',
+        message: 'No se pudo verificar la identidad del usuario'
+      });
+    }
     
     // Obtener procedimientos del mes actual del usuario
-    const procedimientosMes = await ProcedimientoAuxiliar.findAll({
+    // Intentar primero con formato string
+    let procedimientosMes = await ProcedimientoAuxiliar.findAll({
       where: {
         usuarioId,
         fecha: {
@@ -355,7 +367,27 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       order: [['fecha', 'DESC']]
     });
     
+    // Si no hay resultados, intentar con formato Date
+    if (procedimientosMes.length === 0) {
+      console.log('⚠️ No se encontraron procedimientos con formato string, intentando con Date');
+      const inicioMesDate = new Date(inicioMes);
+      procedimientosMes = await ProcedimientoAuxiliar.findAll({
+        where: {
+          usuarioId,
+          fecha: {
+            [Op.gte]: inicioMesDate
+          }
+        },
+        attributes: ['tiempo', 'fecha', 'turno'],
+        raw: true,
+        order: [['fecha', 'DESC']]
+      });
+    }
+    
     console.log('📊 Procedimientos encontrados:', procedimientosMes.length);
+    if (procedimientosMes.length > 0) {
+      console.log('📋 Primer procedimiento:', JSON.stringify(procedimientosMes[0], null, 2));
+    }
 
     // Calcular tiempo total en minutos con validación
     const tiempoTotalMinutos = procedimientosMes.reduce((total, proc) => {
@@ -382,19 +414,36 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     let procedimientosNoche = 0;
     
     procedimientosMes.forEach(proc => {
+      // Normalizar fecha a string
+      let fechaNormalizada = proc.fecha;
+      if (fechaNormalizada instanceof Date) {
+        fechaNormalizada = fechaNormalizada.toISOString().split('T')[0];
+      } else if (typeof fechaNormalizada === 'string' && fechaNormalizada.includes('T')) {
+        fechaNormalizada = fechaNormalizada.split('T')[0];
+      }
+      
       if (proc.turno === 'Día') {
-        turnosDia.add(`${proc.fecha}-${proc.turno}`);
+        turnosDia.add(`${fechaNormalizada}-${proc.turno}`);
         procedimientosDia++;
       } else if (proc.turno === 'Noche') {
-        turnosNoche.add(`${proc.fecha}-${proc.turno}`);
+        turnosNoche.add(`${fechaNormalizada}-${proc.turno}`);
         procedimientosNoche++;
       } else if (proc.turno === '24 h') {
         // Los turnos de 24h cuentan para ambos promedios
-        turnosDia.add(`${proc.fecha}-Día`);
-        turnosNoche.add(`${proc.fecha}-Noche`);
+        turnosDia.add(`${fechaNormalizada}-Día`);
+        turnosNoche.add(`${fechaNormalizada}-Noche`);
         procedimientosDia++;
         procedimientosNoche++;
       }
+    });
+    
+    console.log('📈 Estadísticas calculadas:', {
+      totalProcedimientos: procedimientosMes.length,
+      turnosDia: turnosDia.size,
+      turnosNoche: turnosNoche.size,
+      procedimientosDia,
+      procedimientosNoche,
+      tiempoTotalMinutos
     });
     
     const promedioDia = turnosDia.size > 0 ? 
