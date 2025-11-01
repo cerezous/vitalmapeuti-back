@@ -74,21 +74,18 @@ router.get('/dia/:pacienteRut/:fecha', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/kinesiologia/metricas - Obtener métricas del dashboard de kinesiología
+// GET /api/kinesiologia/metricas - Obtener métricas del dashboard de kinesiología (totales de todos los usuarios)
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
-    const usuarioId = req.user.id;
-    
     // Fecha del mes actual en formato YYYY-MM-DD
     const hoy = new Date();
     const año = hoy.getFullYear();
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const inicioMes = `${año}-${mes}-01`;
     
-    // Obtener procedimientos del mes actual del usuario
+    // Obtener procedimientos del mes actual de TODOS los usuarios
     const procedimientosMes = await ProcedimientoKinesiologia.findAll({
       where: {
-        usuarioId,
         fecha: {
           [Op.gte]: inicioMes
         }

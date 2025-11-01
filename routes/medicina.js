@@ -228,9 +228,9 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Obtener métricas de medicina
+// Obtener métricas de medicina (totales de todos los usuarios)
 router.get('/metricas', authenticateToken, async (req, res) => {
   try {
-    const usuarioId = req.user.id;
     const hoy = new Date();
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
@@ -249,10 +249,9 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       }
     };
 
-    // 1. TOTAL DE PROCEDIMIENTOS DEL MES (del usuario)
+    // 1. TOTAL DE PROCEDIMIENTOS DEL MES (de todos los usuarios)
     const totalProcedimientosMes = await ProcedimientoMedicina.count({
       where: {
-        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]
@@ -260,10 +259,9 @@ router.get('/metricas', authenticateToken, async (req, res) => {
       }
     });
 
-    // 2. TIEMPO TOTAL DEL MES (del usuario)
+    // 2. TIEMPO TOTAL DEL MES (de todos los usuarios)
     const procedimientosTiempo = await ProcedimientoMedicina.findAll({
       where: {
-        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]
@@ -281,10 +279,9 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     const minutosRestantes = tiempoTotalMinutos % 60;
 
     // 3. ANÁLISIS POR TURNOS (SESIONES DE REGISTRO)
-    // Obtener todas las sesiones de registro del mes del usuario (agrupadas por usuario, fecha y turno)
+    // Obtener todas las sesiones de registro del mes de todos los usuarios (agrupadas por usuario, fecha y turno)
     const procedimientosDelMes = await ProcedimientoMedicina.findAll({
       where: {
-        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]
@@ -300,10 +297,9 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     });
 
     // 4. ANÁLISIS ESPECÍFICO DE INTERCONSULTA
-    // Obtener solo los procedimientos de "Interconsulta" para calcular su promedio de tiempo
+    // Obtener solo los procedimientos de "Interconsulta" para calcular su promedio de tiempo (de todos los usuarios)
     const procedimientosInterconsulta = await ProcedimientoMedicina.findAll({
       where: {
-        usuarioId,
         fecha: {
           [Op.gte]: inicioMes.toISOString().split('T')[0],
           [Op.lte]: finMes.toISOString().split('T')[0]

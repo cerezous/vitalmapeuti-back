@@ -461,45 +461,30 @@ router.delete('/:id/procedimientos/:procId', authenticateToken, requireTensOrAdm
   }
 });
 
-// GET /api/procedimientos-tens/metricas/dashboard - Métricas para el dashboard
+// GET /api/procedimientos-tens/metricas/dashboard - Métricas para el dashboard (totales de todos los usuarios)
 router.get('/metricas/dashboard', authenticateToken, async (req, res) => {
   try {
-    const usuarioId = req.user.id;
     const fechaActual = new Date();
     const inicioMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1);
 
-    // Total de procedimientos del usuario
-    const totalProcedimientos = await ProcedimientoTENS.count({
-      include: [{
-        model: RegistroProcedimientosTENS,
-        as: 'registro',
-        where: { usuarioId },
-        required: true
-      }]
-    });
+    // Total de procedimientos de todos los usuarios
+    const totalProcedimientos = await ProcedimientoTENS.count();
 
-    // Registros del usuario este mes
+    // Registros de todos los usuarios este mes
     const registrosEsteMes = await RegistroProcedimientosTENS.count({
       where: {
-        usuarioId,
         fecha: {
           [Op.gte]: inicioMes
         }
       }
     });
 
-    // Tiempo promedio del procedimiento "Aseo y cuidados del paciente" del usuario
+    // Tiempo promedio del procedimiento "Aseo y cuidados del paciente" de todos los usuarios
     let tiempoPromedioAseo = 0;
     const procedimientosAseo = await ProcedimientoTENS.findAll({
       where: {
         nombre: 'Aseo y cuidados del paciente (aseo parcial o completo, cuidados de la piel, etc)'
-      },
-      include: [{
-        model: RegistroProcedimientosTENS,
-        as: 'registro',
-        where: { usuarioId },
-        required: true
-      }]
+      }
     });
     
     if (procedimientosAseo.length > 0) {
@@ -511,9 +496,8 @@ router.get('/metricas/dashboard', authenticateToken, async (req, res) => {
       tiempoPromedioAseo = Math.round(tiempoTotal / tiemposTotales.length);
     }
 
-    // Tiempo total acumulado del usuario
+    // Tiempo total acumulado de todos los usuarios
     const registrosConTiempo = await RegistroProcedimientosTENS.findAll({
-      where: { usuarioId },
       attributes: ['tiempoTotal']
     });
 
@@ -524,10 +508,8 @@ router.get('/metricas/dashboard', authenticateToken, async (req, res) => {
     const horas = Math.floor(tiempoTotalMinutos / 60);
     const minutosRestantes = tiempoTotalMinutos % 60;
 
-    // Promedio de procedimientos por turno del usuario
-    const totalRegistros = await RegistroProcedimientosTENS.count({
-      where: { usuarioId }
-    });
+    // Promedio de procedimientos por turno de todos los usuarios
+    const totalRegistros = await RegistroProcedimientosTENS.count();
     const promedioProcedimientos = totalRegistros > 0 ? totalProcedimientos / totalRegistros : 0;
 
     res.json({
