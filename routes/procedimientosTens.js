@@ -329,7 +329,9 @@ router.put('/:id', authenticateToken, requireTensOrAdmin, async (req, res) => {
     if (fecha) updates.fecha = fecha;
     if (turno) updates.turno = turno;
 
-    await registro.update(updates);
+    if (Object.keys(updates).length > 0) {
+      await registro.update(updates);
+    }
 
     // Obtener el registro actualizado con relaciones
     const registroActualizado = await RegistroProcedimientosTENS.findByPk(id, {
@@ -337,7 +339,7 @@ router.put('/:id', authenticateToken, requireTensOrAdmin, async (req, res) => {
         {
           model: Usuario,
           as: 'usuario',
-          attributes: ['nombres', 'apellidos', 'usuario', 'estamento']
+          attributes: ['id', 'nombres', 'apellidos', 'usuario']
         },
         {
           model: ProcedimientoTENS,
@@ -346,7 +348,7 @@ router.put('/:id', authenticateToken, requireTensOrAdmin, async (req, res) => {
             {
               model: Paciente,
               as: 'paciente',
-              attributes: ['nombreCompleto', 'rut', 'numeroFicha', 'camaAsignada'],
+              attributes: ['rut', 'nombreCompleto', 'numeroFicha', 'camaAsignada'],
               required: false
             }
           ]
