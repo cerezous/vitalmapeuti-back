@@ -103,25 +103,34 @@ router.post('/', authenticateToken, async (req, res) => {
     await transaction.commit();
 
     // Obtener los procedimientos creados con sus relaciones
-    const procedimientosCompletos = await ProcedimientoAuxiliar.findAll({
-      where: {
-        id: {
-          [Op.in]: procedimientosCreados.map(p => p.id)
-        }
-      },
-      include: [
-        {
-          model: Usuario,
-          as: 'usuario',
-          attributes: ['nombres', 'apellidos', 'usuario', 'estamento']
+    let procedimientosCompletos;
+    try {
+      procedimientosCompletos = await ProcedimientoAuxiliar.findAll({
+        where: {
+          id: {
+            [Op.in]: procedimientosCreados.map(p => p.id)
+          }
         },
-        {
-          model: Paciente,
-          as: 'paciente',
-          attributes: ['nombreCompleto', 'rut', 'numeroFicha', 'camaAsignada']
-        }
-      ]
-    });
+        include: [
+          {
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombres', 'apellidos', 'usuario', 'estamento'],
+            required: false
+          },
+          {
+            model: Paciente,
+            as: 'paciente',
+            attributes: ['nombreCompleto', 'rut', 'numeroFicha', 'camaAsignada'],
+            required: false
+          }
+        ]
+      });
+    } catch (includeError) {
+      console.error('Error al obtener relaciones:', includeError);
+      // Si falla el include, devolver al menos los procedimientos básicos
+      procedimientosCompletos = procedimientosCreados;
+    }
 
     res.status(201).json({
       message: 'Procedimientos auxiliares registrados exitosamente',
@@ -139,6 +148,12 @@ router.post('/', authenticateToken, async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('Error al crear procedimientos auxiliares:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      errors: error.errors
+    });
     
     if (error.name === 'SequelizeValidationError') {
       return res.status(400).json({
@@ -152,9 +167,17 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
+    if (error.name === 'SequelizeForeignKeyConstraintError') {
+      return res.status(400).json({
+        error: 'Error de referencia',
+        message: 'Algunos datos referenciados no existen (usuario o paciente)'
+      });
+    }
+
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'Ocurrió un error al registrar los procedimientos auxiliares'
+      message: 'Ocurrió un error al registrar los procedimientos auxiliares',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
