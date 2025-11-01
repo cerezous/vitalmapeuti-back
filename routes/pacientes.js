@@ -20,31 +20,65 @@ router.get('/', verificarAuth, async (req, res) => {
       where: {
         fechaEgresoUTI: null
       },
-      order: [['fechaIngresoUTI', 'DESC']]
+      order: [['fechaIngresoUTI', 'DESC']],
+      limit: 100 // Limitar para evitar cargar demasiados
     });
 
-    // Para cada paciente, obtener el último registro de cada tipo
-    const pacientesConDatos = await Promise.all(pacientes.map(async (paciente) => {
-      // Último Apache II
-      const ultimoApache = await Apache2.findOne({
-        where: { pacienteId: paciente.id },
-        order: [['fechaEvaluacion', 'DESC']],
-        attributes: ['puntajeTotal', 'fechaEvaluacion']
-      });
+    // Obtener todos los datos relacionados en consultas paralelas más eficientes
+    const pacientesIds = pacientes.map(p => p.id);
+    const pacientesRuts = pacientes.map(p => p.rut);
 
-      // Último NAS
-      const ultimoNAS = await NAS.findOne({
-        where: { pacienteRut: paciente.rut },
-        order: [['fechaRegistro', 'DESC']],
-        attributes: ['puntuacionTotal', 'fechaRegistro']
-      });
+    // Obtener todos los Apaches recientes en una consulta
+    const apaches = await Apache2.findAll({
+      where: { pacienteId: { [Op.in]: pacientesIds } },
+      attributes: ['pacienteId', 'puntajeTotal', 'fechaEvaluacion'],
+      order: [['fechaEvaluacion', 'DESC']],
+      raw: true
+    });
 
-      // Última Categorización Kinesiología
-      const ultimaCategorizacion = await CategorizacionKinesiologia.findOne({
-        where: { pacienteRut: paciente.rut },
-        order: [['fechaCategorizacion', 'DESC']],
-        attributes: ['complejidad', 'puntajeTotal', 'fechaCategorizacion']
-      });
+    // Obtener todos los NAS recientes en una consulta
+    const nas = await NAS.findAll({
+      where: { pacienteRut: { [Op.in]: pacientesRuts } },
+      attributes: ['pacienteRut', 'puntuacionTotal', 'fechaRegistro'],
+      order: [['fechaRegistro', 'DESC']],
+      raw: true
+    });
+
+    // Obtener todas las categorizaciones recientes en una consulta
+    const categorizaciones = await CategorizacionKinesiologia.findAll({
+      where: { pacienteRut: { [Op.in]: pacientesRuts } },
+      attributes: ['pacienteRut', 'complejidad', 'puntajeTotal', 'fechaCategorizacion'],
+      order: [['fechaCategorizacion', 'DESC']],
+      raw: true
+    });
+
+    // Crear mapas para acceso rápido
+    const apachesMap = new Map();
+    apaches.forEach(a => {
+      if (!apachesMap.has(a.pacienteId) || new Date(a.fechaEvaluacion) > new Date(apachesMap.get(a.pacienteId).fechaEvaluacion)) {
+        apachesMap.set(a.pacienteId, a);
+      }
+    });
+
+    const nasMap = new Map();
+    nas.forEach(n => {
+      if (!nasMap.has(n.pacienteRut) || new Date(n.fechaRegistro) > new Date(nasMap.get(n.pacienteRut).fechaRegistro)) {
+        nasMap.set(n.pacienteRut, n);
+      }
+    });
+
+    const categorizacionesMap = new Map();
+    categorizaciones.forEach(c => {
+      if (!categorizacionesMap.has(c.pacienteRut) || new Date(c.fechaCategorizacion) > new Date(categorizacionesMap.get(c.pacienteRut).fechaCategorizacion)) {
+        categorizacionesMap.set(c.pacienteRut, c);
+      }
+    });
+
+    // Combinar datos
+    const pacientesConDatos = pacientes.map(paciente => {
+      const ultimoApache = apachesMap.get(paciente.id);
+      const ultimoNAS = nasMap.get(paciente.rut);
+      const ultimaCategorizacion = categorizacionesMap.get(paciente.rut);
 
       return {
         ...paciente.toJSON(),
@@ -62,7 +96,7 @@ router.get('/', verificarAuth, async (req, res) => {
           fecha: ultimaCategorizacion.fechaCategorizacion
         } : null
       };
-    }));
+    });
     
     res.json({
       success: true,
