@@ -178,18 +178,18 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
       }
     }
     
-    // Procedimientos Auxiliares
+    // Procedimientos Auxiliares - optimizado con Promise.all
     try {
-      const procAuxiliares = await ProcedimientoAuxiliar.count({
-        where: { usuarioId }
-      });
+      const [procAuxiliares, tiemposAuxiliares] = await Promise.all([
+        ProcedimientoAuxiliar.count({ where: { usuarioId } }),
+        ProcedimientoAuxiliar.findAll({
+          where: { usuarioId },
+          attributes: ['tiempo'],
+          limit: 1000 // Limitar para evitar cargar demasiados datos
+        })
+      ]);
       totalProcedimientos += procAuxiliares || 0;
-      
-      const procedimientosAuxiliares = await ProcedimientoAuxiliar.findAll({
-        where: { usuarioId },
-        attributes: ['tiempo']
-      });
-      procedimientosAuxiliares.forEach(proc => {
+      tiemposAuxiliares.forEach(proc => {
         tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
       });
     } catch (e) {
@@ -198,16 +198,16 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Procedimientos Medicina
     try {
-      const procMedicina = await ProcedimientoMedicina.count({
-        where: { usuarioId }
-      });
+      const [procMedicina, tiemposMedicina] = await Promise.all([
+        ProcedimientoMedicina.count({ where: { usuarioId } }),
+        ProcedimientoMedicina.findAll({
+          where: { usuarioId },
+          attributes: ['tiempo'],
+          limit: 1000
+        })
+      ]);
       totalProcedimientos += procMedicina || 0;
-      
-      const procedimientosMedicina = await ProcedimientoMedicina.findAll({
-        where: { usuarioId },
-        attributes: ['tiempo']
-      });
-      procedimientosMedicina.forEach(proc => {
+      tiemposMedicina.forEach(proc => {
         tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
       });
     } catch (e) {
@@ -216,16 +216,16 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Procedimientos TENS
     try {
-      const procTENS = await ProcedimientoTENS.count({
-        where: { usuarioId }
-      });
+      const [procTENS, tiemposTENS] = await Promise.all([
+        ProcedimientoTENS.count({ where: { usuarioId } }),
+        ProcedimientoTENS.findAll({
+          where: { usuarioId },
+          attributes: ['tiempo'],
+          limit: 1000
+        })
+      ]);
       totalProcedimientos += procTENS || 0;
-      
-      const procedimientosTENS = await ProcedimientoTENS.findAll({
-        where: { usuarioId },
-        attributes: ['tiempo']
-      });
-      procedimientosTENS.forEach(proc => {
+      tiemposTENS.forEach(proc => {
         tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
       });
     } catch (e) {
@@ -234,16 +234,16 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
     
     // Procedimientos Kinesiología
     try {
-      const procKinesiologia = await ProcedimientoKinesiologia.count({
-        where: { usuarioId }
-      });
+      const [procKinesiologia, tiemposKinesiologia] = await Promise.all([
+        ProcedimientoKinesiologia.count({ where: { usuarioId } }),
+        ProcedimientoKinesiologia.findAll({
+          where: { usuarioId },
+          attributes: ['tiempo'],
+          limit: 1000
+        })
+      ]);
       totalProcedimientos += procKinesiologia || 0;
-      
-      const procedimientosKinesiologia = await ProcedimientoKinesiologia.findAll({
-        where: { usuarioId },
-        attributes: ['tiempo']
-      });
-      procedimientosKinesiologia.forEach(proc => {
+      tiemposKinesiologia.forEach(proc => {
         tiempoTotalMinutos += tiempoAMinutos(proc.tiempo);
       });
     } catch (e) {
@@ -264,94 +264,75 @@ router.get('/metricas/usuario', authenticateToken, async (req, res) => {
       console.error('Error al obtener categorizaciones:', e);
     }
 
-    // 4. Número de Pacientes Atendidos (únicos de todas las tablas)
+    // 4. Número de Pacientes Atendidos (únicos de todas las tablas) - optimizado con Promise.all
     let pacientesSet = new Set();
+    const consultasPacientes = [];
     
     // Pacientes de procedimientos_registro (Enfermería)
     if (registrosIds.length > 0) {
-      try {
-        const pacientesEnfermeria = await ProcedimientoRegistro.findAll({
+      consultasPacientes.push(
+        ProcedimientoRegistro.findAll({
           where: {
             registroId: { [Op.in]: registrosIds },
             pacienteRut: { [Op.ne]: null }
           },
           attributes: ['pacienteRut'],
-          raw: true
-        });
-        pacientesEnfermeria.forEach(p => {
-          if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
-        });
-      } catch (e) {
-        console.error('Error al obtener pacientes de enfermería:', e);
-      }
+          raw: true,
+          limit: 500
+        }).catch(e => {
+          console.error('Error al obtener pacientes de enfermería:', e);
+          return [];
+        })
+      );
     }
     
-    // Pacientes de procedimientos_auxiliares
-    try {
-      const pacientesAuxiliares = await ProcedimientoAuxiliar.findAll({
-        where: {
-          usuarioId,
-          pacienteRut: { [Op.ne]: null }
-        },
+    // Pacientes de otras tablas
+    consultasPacientes.push(
+      ProcedimientoAuxiliar.findAll({
+        where: { usuarioId, pacienteRut: { [Op.ne]: null } },
         attributes: ['pacienteRut'],
-        raw: true
-      });
-      pacientesAuxiliares.forEach(p => {
+        raw: true,
+        limit: 500
+      }).catch(e => {
+        console.error('Error al obtener pacientes auxiliares:', e);
+        return [];
+      }),
+      ProcedimientoMedicina.findAll({
+        where: { usuarioId, pacienteRut: { [Op.ne]: null } },
+        attributes: ['pacienteRut'],
+        raw: true,
+        limit: 500
+      }).catch(e => {
+        console.error('Error al obtener pacientes medicina:', e);
+        return [];
+      }),
+      ProcedimientoTENS.findAll({
+        where: { usuarioId, pacienteRut: { [Op.ne]: null } },
+        attributes: ['pacienteRut'],
+        raw: true,
+        limit: 500
+      }).catch(e => {
+        console.error('Error al obtener pacientes TENS:', e);
+        return [];
+      }),
+      ProcedimientoKinesiologia.findAll({
+        where: { usuarioId, pacienteRut: { [Op.ne]: null } },
+        attributes: ['pacienteRut'],
+        raw: true,
+        limit: 500
+      }).catch(e => {
+        console.error('Error al obtener pacientes kinesiología:', e);
+        return [];
+      })
+    );
+    
+    try {
+      const resultadosPacientes = await Promise.all(consultasPacientes);
+      resultadosPacientes.flat().forEach(p => {
         if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
       });
     } catch (e) {
-      console.error('Error al obtener pacientes auxiliares:', e);
-    }
-    
-    // Pacientes de procedimientos_medicina
-    try {
-      const pacientesMedicina = await ProcedimientoMedicina.findAll({
-        where: {
-          usuarioId,
-          pacienteRut: { [Op.ne]: null }
-        },
-        attributes: ['pacienteRut'],
-        raw: true
-      });
-      pacientesMedicina.forEach(p => {
-        if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
-      });
-    } catch (e) {
-      console.error('Error al obtener pacientes medicina:', e);
-    }
-    
-    // Pacientes de procedimientos_tens
-    try {
-      const pacientesTENS = await ProcedimientoTENS.findAll({
-        where: {
-          usuarioId,
-          pacienteRut: { [Op.ne]: null }
-        },
-        attributes: ['pacienteRut'],
-        raw: true
-      });
-      pacientesTENS.forEach(p => {
-        if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
-      });
-    } catch (e) {
-      console.error('Error al obtener pacientes TENS:', e);
-    }
-    
-    // Pacientes de procedimientos_kinesiologia
-    try {
-      const pacientesKinesiologia = await ProcedimientoKinesiologia.findAll({
-        where: {
-          usuarioId,
-          pacienteRut: { [Op.ne]: null }
-        },
-        attributes: ['pacienteRut'],
-        raw: true
-      });
-      pacientesKinesiologia.forEach(p => {
-        if (p && p.pacienteRut) pacientesSet.add(String(p.pacienteRut).trim());
-      });
-    } catch (e) {
-      console.error('Error al obtener pacientes kinesiología:', e);
+      console.error('Error al obtener pacientes:', e);
     }
     
     const numeroPacientesAtendidos = pacientesSet.size;
