@@ -49,7 +49,12 @@ const ProcedimientoAuxiliar = sequelize.define('ProcedimientoAuxiliar', {
     type: DataTypes.STRING(15),
     allowNull: true, // Algunos procedimientos no requieren paciente específico
     validate: {
-      is: /^[0-9]{1,2}\.?[0-9]{3}\.?[0-9]{3}-[0-9kK]$/i
+      isRutOrNull(value) {
+        if (value === null || value === undefined || value === '') {
+          return true; // Permitir null/undefined/vacío
+        }
+        return /^[0-9]{1,2}\.?[0-9]{3}\.?[0-9]{3}-[0-9kK]$/i.test(value);
+      }
     },
     references: {
       model: 'pacientes',
@@ -101,17 +106,17 @@ ProcedimientoAuxiliar.getProcedimientosValidos = function() {
     'Entrega de turno',
     'Recepción de turno',
     'Aseo terminal (se debe registrar 1 por 1)',
+    'Aseo de chatas, patos y/o retiro de ropa (registrar 1 por 1)',
+    'Aseo nocturno completo por habitación (registrar 1 por 1)',
     'Entrega de interconsulta (se debe registrar 1 por 1)',
     'Entrega de exámenes (se debe registrar 1 por 1)',
     'Entrega de recetas / recepción de fármacos (trayecto hacia y desde farmacia - (se debe registrar 1 por 1))',
-    'Aseo diurno (registrar tiempo total)',
-    'Aseo nocturno (registrar tiempo total)',
     'Aseo de equipos',
     'Preparación de material',
     'Traslados de paciente (se debe registrar 1 por 1)',
     'Traslados a procedimientos (se debe registrar 1 por 1)',
     'Recepción / entrega de ropa (se debe registrar 1 por 1)',
-    'Reposición de insumos (para diurnos incluye traslados a bodega'
+    'Reposición de insumos (para diurnos incluye traslados a bodega)'
   ];
 };
 
