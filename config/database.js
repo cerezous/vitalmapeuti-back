@@ -45,19 +45,4 @@ if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
   });
 }
 
-// Función para probar la conexión
-async function testConnection() {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Conexión a PostgreSQL establecida correctamente');
-    return true;
-  } catch (error) {
-    console.error('❌ Error al conectar con PostgreSQL:', error.message);
-    return false;
-  }
-}
-
-// Probar conexión al cargar el módulo
-testConnection();
-
 module.exports = sequelize;
