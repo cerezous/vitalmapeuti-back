@@ -392,24 +392,16 @@ router.get('/metricas', authenticateToken, async (req, res) => {
     let procedimientosNoche = 0;
     
     procedimientosMes.forEach(proc => {
-      // Normalizar fecha a string
-      let fechaNormalizada = proc.fecha;
-      if (fechaNormalizada instanceof Date) {
-        fechaNormalizada = fechaNormalizada.toISOString().split('T')[0];
-      } else if (typeof fechaNormalizada === 'string' && fechaNormalizada.includes('T')) {
-        fechaNormalizada = fechaNormalizada.split('T')[0];
-      }
-      
       if (proc.turno === 'Día') {
-        turnosDia.add(`${fechaNormalizada}-${proc.turno}`);
+        turnosDia.add(`${proc.fecha}-${proc.turno}`);
         procedimientosDia++;
       } else if (proc.turno === 'Noche') {
-        turnosNoche.add(`${fechaNormalizada}-${proc.turno}`);
+        turnosNoche.add(`${proc.fecha}-${proc.turno}`);
         procedimientosNoche++;
       } else if (proc.turno === '24 h') {
         // Los turnos de 24h cuentan para ambos promedios
-        turnosDia.add(`${fechaNormalizada}-Día`);
-        turnosNoche.add(`${fechaNormalizada}-Noche`);
+        turnosDia.add(`${proc.fecha}-Día`);
+        turnosNoche.add(`${proc.fecha}-Noche`);
         procedimientosDia++;
         procedimientosNoche++;
       }
