@@ -52,7 +52,7 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     // Validar que el usuario sea auxiliar o administrador
-    if (usuario.estamento !== 'Auxiliares' && usuario.estamento !== 'Administrador') {
+    if (usuario.estamento !== 'Auxiliares' && usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
       return res.status(403).json({
         error: 'Acceso denegado',
         message: 'Solo usuarios auxiliares o administradores pueden registrar procedimientos auxiliares'
@@ -486,7 +486,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     // Verificar permisos
     const usuario = await Usuario.findByPk(req.user.id);
-    if (usuario.estamento !== 'Administrador' && procedimiento.usuarioId !== req.user.id) {
+    if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor' && procedimiento.usuarioId !== req.user.id) {
       return res.status(403).json({
         error: 'Acceso denegado',
         message: 'Solo puedes editar tus propios procedimientos o ser administrador'
@@ -591,7 +591,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     // Verificar que el usuario puede eliminar este procedimiento
     const usuario = await Usuario.findByPk(req.user.id);
-    if (usuario.estamento !== 'Administrador' && procedimiento.usuarioId !== req.user.id) {
+    if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor' && procedimiento.usuarioId !== req.user.id) {
       return res.status(403).json({
         error: 'Acceso denegado',
         message: 'Solo puedes eliminar tus propios procedimientos o ser administrador'

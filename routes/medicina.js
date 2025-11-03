@@ -40,7 +40,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     // Validar que el usuario tenga permisos de medicina
     const usuario = await Usuario.findByPk(req.user.id);
-    if (!usuario || (usuario.estamento !== 'Medicina' && usuario.estamento !== 'Administrador')) {
+    if (!usuario || (usuario.estamento !== 'Medicina' && usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor')) {
       return res.status(403).json({
         error: 'Sin permisos',
         message: 'No tiene permisos para registrar procedimientos de medicina'
@@ -447,7 +447,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // Verificar que el usuario sea el propietario o administrador
     if (procedimiento.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede editar sus propios procedimientos'
@@ -555,7 +555,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     // Verificar que el usuario sea el propietario o administrador
     if (procedimiento.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede eliminar sus propios procedimientos'

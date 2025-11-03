@@ -647,7 +647,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // Verificar permisos
     if (registro.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede editar sus propios registros'
@@ -734,7 +734,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     // Verificar que el usuario sea el propietario o administrador
     if (registro.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede eliminar sus propios registros'
@@ -795,7 +795,7 @@ router.post('/:id/procedimientos', authenticateToken, async (req, res) => {
     // Verificar permisos (propietario o administrador)
     if (registro.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede editar sus propios registros'
@@ -910,7 +910,7 @@ router.delete('/:registroId/procedimientos/:procedimientoId', authenticateToken,
     // Verificar permisos (propietario o administrador)
     if (registro.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede editar sus propios registros'
@@ -990,7 +990,7 @@ router.put('/:registroId/procedimientos/:procedimientoId', authenticateToken, as
     // Verificar permisos (solo el propietario o administrador puede editar)
     if (registro.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede editar sus propios procedimientos'

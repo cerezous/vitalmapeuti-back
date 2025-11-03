@@ -250,7 +250,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     // Verificar permisos
     const usuario = await Usuario.findByPk(req.user.id);
-    if (usuario.estamento !== 'Administrador' && procedimiento.usuarioId !== req.user.id) {
+    if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor' && procedimiento.usuarioId !== req.user.id) {
       return res.status(403).json({
         error: 'Acceso denegado',
         message: 'Solo puedes editar tus propios procedimientos o ser administrador'
@@ -357,7 +357,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     // Verificar que el usuario sea el propietario o administrador
     if (procedimiento.usuarioId !== req.user.id) {
       const usuario = await Usuario.findByPk(req.user.id);
-      if (usuario.estamento !== 'Administrador') {
+      if (usuario.estamento !== 'Administrador' && usuario.estamento !== 'Supervisor') {
         return res.status(403).json({
           error: 'Sin permisos',
           message: 'Solo puede eliminar sus propios procedimientos'

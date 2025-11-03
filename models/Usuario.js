@@ -38,7 +38,7 @@ const Usuario = sequelize.define('Usuario', {
     allowNull: false,
     validate: {
       notEmpty: true,
-      isIn: [['Kinesiología', 'Enfermería', 'Medicina', 'Médico', 'Jefatura', 'Administrador', 'Auxiliares', 'TENS']]
+      isIn: [['Kinesiología', 'Enfermería', 'Medicina', 'Médico', 'Jefatura', 'Administrador', 'Auxiliares', 'TENS', 'Supervisor']]
     }
   },
   correo: {

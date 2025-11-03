@@ -122,7 +122,7 @@ router.get('/ultima', auth, async (req, res) => {
 router.get('/estadisticas', auth, async (req, res) => {
   try {
     // Verificar que el usuario sea administrador
-    if (req.user.estamento !== 'Administrador') {
+    if (req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
       return res.status(403).json({
         message: 'No tienes permisos para acceder a estas estadísticas'
       });
@@ -191,7 +191,7 @@ router.get('/estadisticas', auth, async (req, res) => {
 router.get('/todos', auth, async (req, res) => {
   try {
     // Verificar que el usuario sea administrador
-    if (req.user.estamento !== 'Administrador') {
+    if (req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
       return res.status(403).json({
         message: 'No tienes permisos para acceder a esta información'
       });
@@ -222,7 +222,7 @@ router.get('/respuestas/:id', auth, async (req, res) => {
   try {
     
     // Verificar que el usuario sea administrador
-    if (req.user.estamento !== 'Administrador') {
+    if (req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
       return res.status(403).json({
         message: 'No tienes permisos para acceder a esta información'
       });

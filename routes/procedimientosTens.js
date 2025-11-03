@@ -10,11 +10,11 @@ const router = express.Router();
 // Middleware para validar token JWT
 const authenticateToken = require('../middleware/auth');
 
-// Middleware para verificar que el usuario sea TENS o Administrador
+// Middleware para verificar que el usuario sea TENS, Administrador o Supervisor
 const requireTensOrAdmin = (req, res, next) => {
-  if (req.user.estamento !== 'TENS' && req.user.estamento !== 'Administrador') {
+  if (req.user.estamento !== 'TENS' && req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
     return res.status(403).json({
-      message: 'No tienes permisos para acceder a esta sección. Solo usuarios TENS y Administradores pueden realizar registros en este módulo.'
+      message: 'No tienes permisos para acceder a esta sección. Solo usuarios TENS, Administradores y Supervisores pueden realizar registros en este módulo.'
     });
   }
   next();
@@ -309,7 +309,7 @@ router.put('/:id', authenticateToken, requireTensOrAdmin, async (req, res) => {
     }
 
     // Verificar permisos
-    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador') {
+    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
       return res.status(403).json({
         success: false,
         message: 'No tienes permisos para modificar este registro'
@@ -396,7 +396,7 @@ router.delete('/:id', authenticateToken, requireTensOrAdmin, async (req, res) =>
     }
 
     // Verificar que el usuario sea el propietario del registro o sea administrador
-    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador') {
+    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
       return res.status(403).json({
         success: false,
         message: 'No tienes permisos para eliminar este registro'
@@ -437,7 +437,7 @@ router.post('/:id/procedimientos', authenticateToken, requireTensOrAdmin, async 
     }
 
     // Verificar permisos
-    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador') {
+    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
       return res.status(403).json({
         success: false,
         message: 'No tienes permisos para modificar este registro'
@@ -505,7 +505,7 @@ router.delete('/:id/procedimientos/:procId', authenticateToken, requireTensOrAdm
     }
 
     // Verificar permisos
-    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador') {
+    if (registro.usuarioId !== usuarioId && req.user.estamento !== 'Administrador' && req.user.estamento !== 'Supervisor') {
       return res.status(403).json({
         success: false,
         message: 'No tienes permisos para modificar este registro'
