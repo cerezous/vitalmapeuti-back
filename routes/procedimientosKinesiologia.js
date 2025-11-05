@@ -104,10 +104,6 @@ router.get('/todos', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 50, fechaDesde, fechaHasta, turno } = req.query;
 
-    // Parsear valores numéricos
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 50;
-
     // Construir filtros de fecha y turno
     const whereClause = {};
     if (fechaDesde || fechaHasta) {
@@ -119,7 +115,7 @@ router.get('/todos', authenticateToken, async (req, res) => {
       whereClause.turno = turno;
     }
 
-    const offset = (pageNum - 1) * limitNum;
+    const offset = (page - 1) * limit;
 
     const { count, rows: procedimientos } = await ProcedimientoKinesiologia.findAndCountAll({
       where: whereClause,
@@ -137,21 +133,21 @@ router.get('/todos', authenticateToken, async (req, res) => {
         }
       ],
       order: [['fecha', 'DESC'], ['createdAt', 'DESC']],
-      limit: limitNum,
+      limit: parseInt(limit),
       offset: offset
     });
 
-    const totalPages = Math.ceil(count / limitNum);
+    const totalPages = Math.ceil(count / limit);
 
     res.json({
       message: 'Procedimientos obtenidos exitosamente',
       data: {
         procedimientos,
         pagination: {
-          currentPage: pageNum,
+          currentPage: parseInt(page),
           totalPages,
           totalItems: count,
-          itemsPerPage: limitNum
+          itemsPerPage: parseInt(limit)
         }
       }
     });
