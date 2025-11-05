@@ -167,6 +167,10 @@ router.get('/', authenticateToken, async (req, res) => {
       nombre
     } = req.query;
 
+    // Parsear valores numéricos
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 50;
+
     // Construir filtros
     const whereClause = {};
     
@@ -181,7 +185,7 @@ router.get('/', authenticateToken, async (req, res) => {
     if (pacienteRut) whereClause.pacienteRut = pacienteRut;
     if (nombre) whereClause.nombre = { [Op.like]: `%${nombre}%` };
 
-    const offset = (page - 1) * limit;
+    const offset = (pageNum - 1) * limitNum;
 
     const { count, rows: procedimientos } = await ProcedimientoMedicina.findAndCountAll({
       where: whereClause,
@@ -199,21 +203,21 @@ router.get('/', authenticateToken, async (req, res) => {
         }
       ],
       order: [['fecha', 'DESC'], ['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: limitNum,
+      offset: offset
     });
 
-    const totalPages = Math.ceil(count / limit);
+    const totalPages = Math.ceil(count / limitNum);
 
     res.json({
       message: 'Procedimientos de medicina obtenidos exitosamente',
       data: {
         procedimientos,
         pagination: {
-          currentPage: parseInt(page),
+          currentPage: pageNum,
           totalPages,
           totalItems: count,
-          itemsPerPage: parseInt(limit)
+          itemsPerPage: limitNum
         }
       }
     });
