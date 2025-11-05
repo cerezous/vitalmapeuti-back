@@ -68,8 +68,8 @@ const convertirTiempoAMinutos = (tiempo) => {
   return 0;
 };
 
-// GET /api/procedimientos-tens - Obtener todos los registros TENS
-router.get('/', authenticateToken, requireTensOrAdmin, async (req, res) => {
+// GET /api/procedimientos-tens - Obtener todos los registros TENS (todos los usuarios autenticados pueden ver)
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const {
       page = 1,
