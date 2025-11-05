@@ -8,7 +8,7 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "build": "npm install",
-    "postinstall": "npm rebuild pg",
+    "postinstall": "npm rebuild pg --no-optional || true",
     "db:migrate": "node migrations/run-migrations.js",
     "db:seed": "node migrations/seed-data.js",
     "test": "echo \"No tests specified\" && exit 0",
