@@ -438,7 +438,7 @@ router.get('/metricas', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, tiempo, pacienteRut, observaciones, fecha } = req.body;
+    const { nombre, tiempo, pacienteRut, observaciones, fecha, turno } = req.body;
     
     const procedimiento = await ProcedimientoMedicina.findByPk(id);
     if (!procedimiento) {
@@ -464,6 +464,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({
         error: 'Datos requeridos',
         message: 'El nombre y tiempo son obligatorios'
+      });
+    }
+
+    if (turno && !['24 h', '22 h', '12 h'].includes(turno)) {
+      return res.status(400).json({
+        error: 'Turno inválido',
+        message: 'El turno debe ser "24 h", "22 h" o "12 h"'
       });
     }
 
@@ -501,7 +508,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
       tiempo,
       pacienteRut: pacienteRut || null,
       observaciones: observaciones || null,
-      fecha: fecha || procedimiento.fecha
+      fecha: fecha || procedimiento.fecha,
+      turno: turno || procedimiento.turno
     });
 
     // Obtener el procedimiento actualizado con relaciones
