@@ -347,6 +347,52 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
+// Ruta para validar token y obtener información del usuario
+app.get('/api/auth/validate-reset-token', async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Token es requerido' });
+    }
+    
+    // Verificar token
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, process.env.JWT_SECRET || 'vitalmape-secret-key-2024');
+      
+      if (decodedToken.tipo !== 'reset') {
+        return res.status(400).json({ error: 'Token inválido para recuperación de contraseña' });
+      }
+    } catch (tokenError) {
+      if (tokenError.name === 'TokenExpiredError') {
+        return res.status(400).json({ error: 'El token ha expirado. Solicita una nueva recuperación de contraseña.' });
+      }
+      return res.status(400).json({ error: 'Token inválido' });
+    }
+    
+    // Buscar usuario
+    const usuario = await Usuario.findByPk(decodedToken.id, {
+      attributes: ['id', 'usuario', 'nombres', 'apellidos']
+    });
+    
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    res.json({ 
+      success: true,
+      usuario: usuario.usuario,
+      nombres: usuario.nombres,
+      apellidos: usuario.apellidos
+    });
+    
+  } catch (error) {
+    console.error('Error al validar token:', error);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
 // Ruta para restablecer contraseña con token
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
