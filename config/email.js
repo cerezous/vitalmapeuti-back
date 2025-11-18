@@ -66,7 +66,7 @@ async function enviarCorreoBienvenida(usuario, contraseña) {
                         </div>
                         
                         <div style="text-align: center; margin-top: 30px;">
-                            <a href="${process.env.FRONTEND_URL || 'https://vitalmapeuti-front.vercel.app'}/login" 
+                            <a href="${process.env.FRONTEND_URL || 'https://vitalmapeuti.onrender.com'}/login" 
                                style="background-color: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
                                 Iniciar Sesión
                             </a>
@@ -114,7 +114,7 @@ async function enviarCorreoRecuperacion(usuario, token) {
         return { success: false, error: `Dirección de correo inválida: ${emailDestinatario}` };
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://vitalmapeuti-front.vercel.app';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://vitalmapeuti.onrender.com';
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
     
     // Intentar primero con SendGrid si está configurado
@@ -324,7 +324,7 @@ async function enviarCorreoConGmail(usuario, contraseña) {
                         </div>
                         
                         <div style="text-align: center; margin-top: 30px;">
-                            <a href="${process.env.FRONTEND_URL || 'https://vitalmapeuti-front.vercel.app'}/login" 
+                            <a href="${process.env.FRONTEND_URL || 'https://vitalmapeuti.onrender.com'}/login" 
                                style="background-color: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
                                 Iniciar Sesión
                             </a>
