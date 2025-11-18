@@ -45,10 +45,14 @@ async function enviarCorreoBienvenida(usuario, contraseña) {
         const sgMail = require('@sendgrid/mail');
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+        const frontendUrl = process.env.FRONTEND_URL || 'https://vitalmapeuti.onrender.com';
+        
         const msg = {
             to: emailDestinatario,
             from: 'mcerezopr@gmail.com', // Email verificado en SendGrid
             subject: '¡Bienvenido a VitalMape UTI!',
+            // Texto plano alternativo para mejor deliverability
+            text: `¡Bienvenido a VitalMape UTI!\n\nSistema de Gestión de Unidad de Terapia Intensiva\n\nInformación de tu cuenta:\n- Nombre: ${usuario.nombres} ${usuario.apellidos}\n- Usuario: ${usuario.usuario}\n- Contraseña: ${contraseña}\n- Estamento: ${usuario.estamento}\n\nPuedes iniciar sesión en: ${frontendUrl}/login\n\nSaludos,\nEquipo VitalMape UTI`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
                     <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -124,10 +128,14 @@ async function enviarCorreoRecuperacion(usuario, token) {
             const sgMail = require('@sendgrid/mail');
             sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+            const frontendUrl = process.env.FRONTEND_URL || 'https://vitalmapeuti.onrender.com';
+            
             const msg = {
                 to: emailDestinatario,
                 from: 'mcerezopr@gmail.com',
                 subject: 'Recuperación de Contraseña - VitalMape UTI',
+                // Texto plano alternativo para mejor deliverability
+                text: `Hola ${usuario.nombres},\n\nHas solicitado recuperar tu contraseña. Visita el siguiente enlace para restablecerla:\n\n${resetLink}\n\nEste enlace expirará en 1 hora.\n\nSi no solicitaste este cambio, puedes ignorar este mensaje.\n\nSaludos,\nEquipo VitalMape UTI`,
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
                         <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -207,20 +215,30 @@ async function enviarCorreoRecuperacionConGmail(usuario, token, resetLink) {
     
     const nodemailer = require('nodemailer');
     
+    // Crear pool de conexiones para reutilizar y mejorar velocidad
     const transporter = nodemailer.createTransporter({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: false,
+        secure: false, // true para 465, false para otros puertos
         auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS
         },
         tls: {
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
+            ciphers: 'SSLv3'
         },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000
+        // Pool de conexiones para reutilizar y mejorar velocidad
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        // Timeouts optimizados para velocidad
+        connectionTimeout: 10000, // 10 segundos
+        greetingTimeout: 5000,    // 5 segundos
+        socketTimeout: 10000,     // 10 segundos
+        // Rate limiting
+        rateDelta: 1000,
+        rateLimit: 5
     });
     
     const emailDestinatario = usuario.correo || usuario.email;
@@ -229,6 +247,21 @@ async function enviarCorreoRecuperacionConGmail(usuario, token, resetLink) {
         from: `"VitalMape UTI" <${process.env.SMTP_USER}>`,
         to: emailDestinatario,
         subject: 'Recuperación de Contraseña - VitalMape UTI',
+        // Texto plano alternativo para mejor deliverability
+        text: `Hola ${usuario.nombres},\n\nHas solicitado recuperar tu contraseña. Visita el siguiente enlace para restablecerla:\n\n${resetLink}\n\nEste enlace expirará en 1 hora.\n\nSi no solicitaste este cambio, puedes ignorar este mensaje.\n\nSaludos,\nEquipo VitalMape UTI`,
+        // Headers para evitar spam
+        headers: {
+            'X-Priority': '1',
+            'X-MSMail-Priority': 'High',
+            'Importance': 'high',
+            'List-Unsubscribe': `<${process.env.FRONTEND_URL || 'https://vitalmapeuti.onrender.com'}/unsubscribe>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            'X-Mailer': 'VitalMape UTI System',
+            'Precedence': 'bulk',
+            'Return-Path': process.env.SMTP_USER
+        },
+        // Prioridad alta
+        priority: 'high',
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
                 <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -285,28 +318,55 @@ async function enviarCorreoConGmail(usuario, contraseña) {
     try {
         const nodemailer = require('nodemailer');
         
+        // Crear pool de conexiones para reutilizar y mejorar velocidad
         const transporter = nodemailer.createTransporter({
             host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT || 587,
+            port: parseInt(process.env.SMTP_PORT) || 587,
             secure: false,
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
             },
             tls: {
-                rejectUnauthorized: false
+                rejectUnauthorized: false,
+                ciphers: 'SSLv3'
             },
-            connectionTimeout: 30000,
-            greetingTimeout: 30000,
-            socketTimeout: 30000
+            // Pool de conexiones para reutilizar y mejorar velocidad
+            pool: true,
+            maxConnections: 5,
+            maxMessages: 100,
+            // Timeouts optimizados para velocidad
+            connectionTimeout: 10000,
+            greetingTimeout: 5000,
+            socketTimeout: 10000,
+            // Rate limiting
+            rateDelta: 1000,
+            rateLimit: 5
         });
         
         const emailDestinatario = usuario.correo || usuario.email;
         
+        const frontendUrl = process.env.FRONTEND_URL || 'https://vitalmapeuti.onrender.com';
+        
         const mailOptions = {
-            from: process.env.SMTP_USER,
+            from: `"VitalMape UTI" <${process.env.SMTP_USER}>`,
             to: emailDestinatario,
             subject: '¡Bienvenido a VitalMape UTI!',
+            // Texto plano alternativo para mejor deliverability
+            text: `¡Bienvenido a VitalMape UTI!\n\nSistema de Gestión de Unidad de Terapia Intensiva\n\nInformación de tu cuenta:\n- Nombre: ${usuario.nombres} ${usuario.apellidos}\n- Usuario: ${usuario.usuario}\n- Contraseña: ${contraseña}\n- Estamento: ${usuario.estamento}\n\nPuedes iniciar sesión en: ${frontendUrl}/login\n\nSaludos,\nEquipo VitalMape UTI`,
+            // Headers para evitar spam
+            headers: {
+                'X-Priority': '1',
+                'X-MSMail-Priority': 'High',
+                'Importance': 'high',
+                'List-Unsubscribe': `<${frontendUrl}/unsubscribe>`,
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                'X-Mailer': 'VitalMape UTI System',
+                'Precedence': 'bulk',
+                'Return-Path': process.env.SMTP_USER
+            },
+            // Prioridad alta
+            priority: 'high',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
                     <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
